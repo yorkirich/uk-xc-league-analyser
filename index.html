@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>UK XC League 2026 – standings over time</title>
+<title>UK XC League – standings over time</title>
 <style>
 :root{
   color-scheme:light;
@@ -67,6 +67,11 @@ input[type=range]{padding:0;width:220px;accent-color:var(--accent)}
 .fc a{display:inline-flex;gap:6px;align-items:center;padding:4px 10px 4px 8px;border-radius:0 6px 6px 0}
 .fc a:hover{background:var(--grid)}
 .fc a:hover .sc{text-decoration:underline}
+.fc button{display:inline-flex;gap:6px;align-items:baseline;padding:4px 10px 4px 8px;border:0;border-radius:0 6px 6px 0;background:none;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+.fc button:hover{background:var(--grid)}
+.fc button:hover .sc{text-decoration:underline}
+#chart rect.cseg,#chart circle.cseg{cursor:pointer}
+#chart rect.cseg:hover{filter:brightness(1.12)}
 .fc .sc{font-size:13px;font-weight:550}
 .ti{flex:none;display:block}
 .ps-keys{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;color:var(--text2)}
@@ -95,37 +100,44 @@ tbody tr:hover{background:var(--panel)}
 </head>
 <body>
 <main>
-  <h1>UK XC League 2026 — standings through the season</h1>
+  <h1 id="h1">UK XC League — standings through the season</h1>
   <p class="sub" id="sub">Rank or league score for each pilot, day by day.</p>
   <div class="err" id="err" hidden></div>
 
   <div class="controls">
+    <div class="ctl"><label for="season">Season</label><select id="season"></select></div>
+    <div class="ctl"><span class="lbl">Standings</span>
+      <div class="seg" id="std"><button data-v="pilots">Pilots</button><button data-v="clubs">Clubs</button></div>
+    </div>
     <div class="ctl"><span class="lbl">Show</span>
       <div class="seg" id="mode">
-        <button data-v="top">Top N</button><button data-v="pick">Chosen pilots</button><button data-v="around">Around a pilot</button><button data-v="club">Club</button>
+        <button data-v="top">Top N</button><button data-v="pick">Chosen <span class="noun">pilots</span></button><button data-v="around">Around a <span class="noun1">pilot</span></button><button data-v="club" data-std="pilots">Club</button>
       </div>
     </div>
     <div class="ctl" data-for="top club"><label for="n">How many</label><input id="n" type="number" min="1" max="100" value="10"></div>
     <div class="ctl" data-for="club"><label for="club">Club</label><select id="club"></select></div>
-    <div class="ctl" data-for="pick around"><label for="search">Pilot</label><input id="search" class="search" list="names" placeholder="Type a name…" autocomplete="off"></div>
+    <div class="ctl" data-for="pick around"><label for="search" class="noun1 cap">Pilot</label><input id="search" class="search" list="names" placeholder="Type a name…" autocomplete="off"></div>
     <div class="ctl" data-for="around"><label for="k">Places either side</label><input id="k" type="number" min="1" max="30" value="4"></div>
     <div class="ctl"><label for="at">Ranked at <strong id="atLbl"></strong></label><input id="at" type="range" min="0" max="0"></div>
   </div>
   <div class="controls">
-    <div class="ctl"><span class="lbl">Chart</span>
-      <div class="seg" id="chartType"><button data-v="line">Line</button><button data-v="bar">Flights</button></div>
+    <div class="ctl"><span class="lbl">View</span>
+      <div class="seg" id="chartType"><button data-v="line">Compare</button><button data-v="bar">Breakdown</button></div>
     </div>
     <div class="ctl" data-chart="line"><span class="lbl">Plot</span>
       <div class="seg" id="metric"><button data-v="rank">Rank</button><button data-v="score">Score</button></div>
     </div>
-    <div class="ctl" data-chart="bar"><label for="barPilot">Pilot</label><select id="barPilot"></select></div>
+    <div class="ctl" data-chart="bar"><label for="barPilot" class="noun1 cap">Pilot</label><select id="barPilot"></select></div>
+    <div class="ctl" data-chart="bar"><span class="lbl">Show</span>
+      <div class="seg" id="barFlights"><button data-v="all">All</button><button data-v="scoring">Scoring</button><button data-v="best">Best</button></div>
+    </div>
     <div class="ctl" data-chart="bar"><span class="lbl">Time scale</span>
-      <div class="seg" id="barScale"><button data-v="compact" title="Equal slot for each flying day; gaps between flights shortened">Compact</button><button data-v="calendar" title="True dates">Calendar</button></div>
+      <div class="seg" id="barScale"><button data-v="compact">Compact</button><button data-v="calendar">Calendar</button></div>
     </div>
     <div class="ctl"><span class="lbl">Period</span>
       <div class="row">
         <input id="from" type="date" aria-label="From date"><span class="lbl">to</span><input id="to" type="date" aria-label="To date">
-        <button class="btn" id="resetRange" title="Fit to the flights shown">Reset</button>
+        <button class="btn" id="resetRange">Reset</button>
       </div>
     </div>
   </div>
@@ -138,8 +150,8 @@ tbody tr:hover{background:var(--panel)}
   <p class="hint" id="hint"></p>
   <p class="hint" id="source" hidden></p>
 
-  <table>
-    <thead><tr><th>Pilot</th><th>Club</th><th>Glider</th><th class="num" id="thRank">Rank</th><th class="num">Score</th><th class="num">Flights</th><th></th></tr></thead>
+  <table id="table" data-chart="line">
+    <thead id="thead"></thead>
     <tbody id="rows"></tbody>
   </table>
 </main>
@@ -184,18 +196,7 @@ function buildModel(data){
     }
     score.push(sc); nf.push(n);
   });
-  const rank = pilots.map(() => new Uint16Array(D)); // 0 = not yet ranked
-  const order = [...Array(P).keys()];
-  for (let d = 0; d < D; d++){
-    order.sort((a, b) => score[b][d] - score[a][d]);
-    let r = 0;
-    for (let j = 0; j < P; j++){
-      const i = order[j], s = score[i][d];
-      if (s <= 0) break;
-      if (j === 0 || s < score[order[j - 1]][d]) r = j + 1; // ties share a rank
-      rank[i][d] = r;
-    }
-  }
+  const rank = rankAll(score, D);
   // "Surname, First name" labels (club added for the two pilots who share a name), sorted by surname then first name
   pilots.forEach(p => {
     const club = / \(.+\)$/.test(p.name) ? " (" + p.club + ")" : "";
@@ -207,8 +208,60 @@ function buildModel(data){
   const byName = new Map();
   pilots.forEach((p, i) => { byName.set(p.name.toLowerCase(), i); byName.set(p.label.toLowerCase(), i); });
   const clubs = [...new Set(pilots.map(p => p.club).filter(Boolean))].sort();
+
+  // Clubs: a club's score on a day is the sum of its best clubN (4) pilots' league scores that day
+  const clubN = data.clubN || 4;
+  const cIdx = new Map(clubs.map((c, k) => [c, k]));
+  const members = clubs.map(() => []);
+  pilots.forEach((p, i) => { const k = cIdx.get(p.club); if (k != null) members[k].push(i); });
+  const cScore = [], cN = [], buf = [];
+  for (const mem of members){
+    const sc = new Float32Array(D), n = new Uint16Array(D);
+    for (let d = 0; d < D; d++){
+      buf.length = 0;
+      for (const i of mem) if (score[i][d] > 0) buf.push(score[i][d]);
+      buf.sort((a, b) => b - a);
+      let t = 0; for (let j = 0; j < Math.min(clubN, buf.length); j++) t += buf[j];
+      sc[d] = t; n[d] = buf.length; // n = club pilots with a score so far
+    }
+    cScore.push(sc); cN.push(n);
+  }
+  const cRank = rankAll(cScore, D);
+  const cByName = new Map(clubs.map((c, k) => [c.toLowerCase(), k]));
+
   return {pilots, dates, D, score, rank, nf, byP, bestN, byName, bySurname, clubs, firstDay, lastDay, season: data.season,
+          clubN, members, cScore, cRank, cN, cByName,
           types: data.types || [], gliders: data.gliders || [], sites: data.sites || [], flightUrl: data.flightUrl || ""};
+}
+// Rank on every day from scores: equal scores share a rank, and 0 = not ranked yet (no score)
+function rankAll(score, D){
+  const P = score.length, rank = score.map(() => new Uint16Array(D)), order = [...Array(P).keys()];
+  for (let d = 0; d < D; d++){
+    order.sort((a, b) => score[b][d] - score[a][d]);
+    let r = 0;
+    for (let j = 0; j < P; j++){
+      const i = order[j], s = score[i][d];
+      if (s <= 0) break;
+      if (j === 0 || s < score[order[j - 1]][d]) r = j + 1; // ties share a rank
+      rank[i][d] = r;
+    }
+  }
+  return rank;
+}
+// A club's pilots counting towards its score on a given day, best first
+function clubCounted(c, d){
+  return M.members[c].filter(i => M.score[i][d] > 0).sort((a, b) => M.score[b][d] - M.score[a][d]).slice(0, M.clubN);
+}
+// The standings being shown: pilots, or clubs. Everything that draws lines, legends, tables and selections goes
+// through this, so both kinds behave the same way.
+let E;
+function entities(){
+  if (S.std === "clubs") return {kind:"clubs", n:M.clubs.length, score:M.cScore, rank:M.cRank, count:M.cN,
+    name:c => M.clubs[c], label:c => M.clubs[c], key:c => M.clubs[c], sorted:M.clubs.map((_, c) => c), byName:M.cByName,
+    noun:"club", nouns:"clubs"};
+  return {kind:"pilots", n:M.pilots.length, score:M.score, rank:M.rank, count:M.nf,
+    name:i => M.pilots[i].name, label:i => M.pilots[i].label, key:i => M.pilots[i].id, sorted:M.bySurname, byName:M.byName,
+    noun:"pilot", nouns:"pilots"};
 }
 // The flights counting towards a pilot's score on a given day, best first (matches the league's Flight 1–6)
 function countedFlights(i, d){
@@ -217,16 +270,18 @@ function countedFlights(i, d){
 
 /* ---------- state & selection ---------- */
 let M;
-const S = {mode:"top", chart:"line", metric:"rank", n:10, at:0, k:4, club:"", picks:[], focus:null, hl:null, pin:null, from:0, to:0, barPilot:null, rangeKey:null, barScale:"compact"};
+const S = {mode:"top", chart:"line", metric:"score", n:10, at:0, k:4, club:"", picks:[], focus:null, hl:null, pin:null, from:0, to:0, barPilot:null, rangeKey:null, barScale:"compact", barFlights:"all", std:"pilots", saved:{}};
+// Who is chosen (Chosen, Around, Flights, picked-out line) is kept separately for pilots and for clubs
+const PER_STD = ["picks", "focus", "barPilot", "pin", "hl"];
 const slotOf = new Map(); // pilot index -> style slot; a pilot keeps its colour while it stays on the chart
 
 function selection(){
-  const {rank, pilots} = M, at = S.at;
-  const rankedAt = filter => pilots.map((_, i) => i).filter(i => rank[i][at] > 0 && filter(i)).sort((a, b) => rank[a][at] - rank[b][at]);
+  const {rank} = E, at = S.at;
+  const rankedAt = filter => [...Array(E.n).keys()].filter(i => rank[i][at] > 0 && filter(i)).sort((a, b) => rank[a][at] - rank[b][at]);
   switch (S.mode){
     case "top": return rankedAt(() => true).slice(0, S.n);
     case "pick": return S.picks.slice();
-    case "club": return rankedAt(i => pilots[i].club === S.club).slice(0, S.n);
+    case "club": return E.kind === "pilots" ? rankedAt(i => M.pilots[i].club === S.club).slice(0, S.n) : [];
     case "around": {
       if (S.focus == null) return [];
       const r = rank[S.focus][at];
@@ -276,13 +331,20 @@ function timeAxis(d0, d1, x, m, W, H, grid){
 }
 
 function render(){
+  if (!M) return; // no season loaded yet
+  E = entities();
   const sel = selection();
   assignSlots(sel);
   $("#tip").style.display = "none";
   const shown = S.chart === "bar" ? [barPilot(sel)].filter(i => i != null) : sel;
-  const key = S.chart + ":" + shown.slice().sort((a, b) => a - b).join(",");
-  if (key !== S.rangeKey){ S.rangeKey = key; fitRange(shown); }
-  if (S.chart === "bar") renderBars(sel); else renderLines(sel);
+  const key = E.kind + ":" + S.chart + ":" + (S.chart === "bar" ? S.barFlights + ":" : "") + shown.slice().sort((a, b) => a - b).join(",");
+  if (key !== S.rangeKey){
+    S.rangeKey = key;
+    const barDays = i => (E.kind === "clubs" ? clubBars(i) : flightBars(i)).bars.map(b => b.day);
+    const flyDays = i => E.kind === "clubs" ? M.members[i].flatMap(p => M.byP[p].map(f => f.day)) : M.byP[i].map(f => f.day);
+    fitRange(S.chart === "bar" ? (shown.length ? barDays(shown[0]) : []) : shown.flatMap(flyDays));
+  }
+  if (S.chart === "bar") (E.kind === "clubs" ? renderClubBars : renderBars)(sel); else renderLines(sel);
   renderTable(sel);
   renderChips();
   applyHighlight(); // re-apply to the freshly drawn table
@@ -292,7 +354,7 @@ function render(){
 /* ---------- line chart ---------- */
 function renderLines(sel){
   const isRank = S.metric === "rank";
-  const val = (i, d) => isRank ? (M.rank[i][d] || null) : M.score[i][d];
+  const val = (i, d) => isRank ? (E.rank[i][d] || null) : E.score[i][d];
 
   const wrap = $("#chart"), W = Math.max(320, wrap.clientWidth);
   const H = Math.round(Math.max(300, Math.min(540, W * 0.52)));
@@ -304,14 +366,14 @@ function renderLines(sel){
   if (isRank){
     let worst = 1, worstAt = 1;
     for (const i of sel){
-      for (let d = d0; d <= d1; d++) worst = Math.max(worst, M.rank[i][d]);
-      worstAt = Math.max(worstAt, M.rank[i][Math.min(Math.max(S.at, d0), d1)] || 0);
+      for (let d = d0; d <= d1; d++) worst = Math.max(worst, E.rank[i][d]);
+      worstAt = Math.max(worstAt, E.rank[i][Math.min(Math.max(S.at, d0), d1)] || 0);
     }
     // Focus the axis on where these pilots sit; much lower early-season ranks run off the bottom (clipped)
     ymin = 1; ymax = Math.max(5, Math.min(worst, Math.ceil(worstAt * 2.5) + 5));
   } else {
     let best = 0;
-    for (const i of sel) for (let d = d0; d <= d1; d++) best = Math.max(best, M.score[i][d]);
+    for (const i of sel) for (let d = d0; d <= d1; d++) best = Math.max(best, E.score[i][d]);
     ymin = 0; ymax = Math.max(best * 1.05, 10);
   }
   const ih = H - m.t - m.b;
@@ -345,7 +407,7 @@ function renderLines(sel){
     g += `<g class="series" data-i="${i}"><path class="vis" d="${path(i)}" fill="none" stroke="${colour(i)}" stroke-dasharray="${dash(i)}" stroke-width="2" stroke-linejoin="round"/><path class="hitline" d="${path(i)}" fill="none" stroke="transparent" stroke-width="12"/></g>`;
   g += `</g><g id="hlLabel" pointer-events="none"></g>`;
   g += `<line id="xh" y1="${m.t}" y2="${H - m.b}" stroke="var(--text2)" stroke-width="1" visibility="hidden" pointer-events="none"/>`;
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${isRank ? "Rank" : "Score"} over time for ${sel.length} pilots">${g}</svg>`;
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${isRank ? "Rank" : "Score"} over time for ${sel.length} ${E.nouns}">${g}</svg>`;
 
   const svg = $("#chart svg");
   svg.addEventListener("pointermove", onLineMove);
@@ -391,15 +453,15 @@ function applyHighlight(){
   const v = val(f, d); if (v == null) return;
   const X = Math.min(x(d), W - m.r) - 4, Y0 = Math.max(m.t, Math.min(H - m.b, y(v)));
   const Y = Y0 - 9 < m.t + 4 ? Y0 + 18 : Y0 - 9;
-  const rk = M.rank[f][S.at];
-  lab.innerHTML = `<text x="${X}" y="${Y}" text-anchor="end" paint-order="stroke" stroke="var(--surface)" stroke-width="5" stroke-linejoin="round" style="fill:var(--text);font-size:13px;font-weight:650">${esc(M.pilots[f].name)}${rk ? ` <tspan style="font-weight:400;fill:var(--text2)">#${rk}</tspan>` : ""}</text>`;
+  const rk = E.rank[f][S.at];
+  lab.innerHTML = `<text x="${X}" y="${Y}" text-anchor="end" paint-order="stroke" stroke="var(--surface)" stroke-width="5" stroke-linejoin="round" style="fill:var(--text);font-size:13px;font-weight:650">${esc(E.name(f))}${rk ? ` <tspan style="font-weight:400;fill:var(--text2)">#${rk}</tspan>` : ""}</text>`;
 }
 function renderLineLegend(sel){
   const at = S.at;
-  const order = sel.slice().sort((a, b) => (M.rank[a][at] || 1e9) - (M.rank[b][at] || 1e9));
+  const order = sel.slice().sort((a, b) => (E.rank[a][at] || 1e9) - (E.rank[b][at] || 1e9));
   $("#lineLegend").innerHTML = order.map(i => {
-    const r = M.rank[i][at];
-    return `<button class="li" data-i="${i}" aria-pressed="false" title="Click to pick out ${esc(M.pilots[i].name)}; click again to release">${keySvg(i)}<span>${r ? `<span class="rk">#${r}</span> ` : ""}${esc(M.pilots[i].name)}</span></button>`;
+    const r = E.rank[i][at];
+    return `<button class="li" data-i="${i}" aria-pressed="false" title="Click to see ${esc(E.name(i))}'s ${E.kind === "clubs" ? "pilots" : "flights"}">${keySvg(i)}<span>${r ? `<span class="rk">#${r}</span> ` : ""}${esc(E.name(i))}</span></button>`;
   }).join("");
 }
 function dayAt(e){
@@ -417,43 +479,49 @@ function onLineMove(e){
   const max = 14;
   let h = `<div class="d">${fmtD(M.dates[d])}</div>`;
   for (const r of rows.slice(0, max))
-    h += `<div class="r"${r.i === f ? ' style="font-weight:700"' : ""}>${keySvg(r.i)}<span class="n">${esc(M.pilots[r.i].name)}</span><span class="v">${isRank ? "#" + r.v : fmtS(r.v)}</span></div>`;
+    h += `<div class="r"${r.i === f ? ' style="font-weight:700"' : ""}>${keySvg(r.i)}<span class="n">${esc(E.name(r.i))}</span><span class="v">${isRank ? "#" + r.v : fmtS(r.v)}</span></div>`;
   if (rows.length > max) h += `<div class="r m">+ ${rows.length - max} more</div>`;
-  if (!rows.length) h += `<div class="r m">No ranked pilots yet</div>`;
+  if (!rows.length) h += `<div class="r m">No ranked ${E.nouns} yet</div>`;
   showTip(h, e);
 }
 
 /* ---------- stacked bars: one pilot, a bar on each flying day showing the flights counting at that point ---------- */
 function barPilot(sel){
   if (S.barPilot != null) return S.barPilot;
-  const byRank = sel.slice().sort((a, b) => (M.rank[a][S.at] || 1e9) - (M.rank[b][S.at] || 1e9));
+  const byRank = sel.slice().sort((a, b) => (E.rank[a][S.at] || 1e9) - (E.rank[b][S.at] || 1e9));
   S.barPilot = S.mode === "around" && sel.includes(S.focus) ? S.focus : (byRank[0] ?? null);
   return S.barPilot;
 }
-function renderBars(sel){
-  const wrap = $("#chart"), W = Math.max(320, wrap.clientWidth);
-  const i = barPilot(sel);
-  const bp = $("#barPilot"); // every pilot, "Surname, First name"
-  if (!bp.options.length) bp.innerHTML = M.bySurname.map(j => `<option value="${j}">${esc(M.pilots[j].label)}</option>`).join("");
-  if (i != null) bp.value = String(i);
-  geom = {kind:"bar"};
-  if (i == null){ wrap.innerHTML = `<p class="hint">No pilot selected.</p>`; $("#barLegend").innerHTML = ""; return; }
-
+// A pilot's flying days, and the bars the Flights setting keeps:
+//   all     - every flying day, with hollow circles for flights that never counted
+//   scoring - only days with a flight that counted at the time (never-counted flights left out)
+//   best    - only days with one of the final best flights, stacking just those flights
+// "all" holds every flying day with the real league total, for the total line.
+function flightBars(i){
   const fl = M.byP[i];
   const finalBest = countedFlights(i, M.D - 1);           // the flights that end up counting, best first
   const finalNo = new Map(finalBest.map((f, n) => [f, n])); // flight -> 0..5, the league's Flight 1–6
   const days = [...new Set(fl.map(f => f.day))].sort((a, b) => a - b);
-  const bars = days.map(day => {
+  const all = days.map(day => {
     const counted = fl.filter(f => f.day <= day).sort((a, b) => b.s - a.s).slice(0, M.bestN);
-    return {day, total: counted.reduce((a, f) => a + f.s, 0),
-            stack: counted.slice().sort((a, b) => a.day - b.day || b.s - a.s), // oldest at the bottom
-            missed: fl.filter(f => f.day === day && !counted.includes(f))};    // flown today but not counting
+    const today = fl.filter(f => f.day === day);
+    return {day, total: counted.reduce((a, f) => a + f.s, 0), counted, today,
+            missed: today.filter(f => !counted.includes(f))}; // flown today but not counting
   });
-
-  const H = Math.round(Math.max(300, Math.min(540, W * 0.52)));
-  const m = {t:26, r:16, b:28, l:56};
-  const d0 = S.from, d1 = Math.max(S.to, S.from + 1);
-  const pw = W - m.l - m.r, ih = H - m.t - m.b;
+  const mode = S.barFlights;
+  const bars = all.filter(b => mode === "all" ? true
+      : mode === "scoring" ? b.today.some(f => b.counted.includes(f))
+      : b.today.some(f => finalNo.has(f)))
+    .map(b => {
+      const stack = (mode === "best" ? b.counted.filter(f => finalNo.has(f)) : b.counted.slice())
+        .sort((a, c) => a.day - c.day || c.s - a.s); // oldest at the bottom
+      return {day: b.day, league: b.total, total: stack.reduce((a, f) => a + f.s, 0), stack,
+              missed: mode === "all" ? b.missed : []};
+    });
+  return {all, bars, finalBest, finalNo};
+}
+// The time scale for a bar chart: every bar the same width, fitted to the bars in view
+function barScale(bars, d0, d1, m, pw){
   const inView = bars.filter(b => b.day >= d0 && b.day <= d1);
   let x, edge, bw;
   if (S.barScale === "calendar"){
@@ -478,8 +546,24 @@ function renderBars(sel){
     edge = d => m.l + cum[Math.max(0, Math.min(n, d - d0))] * unit; // start of a day (month boundaries)
     bw = Math.max(3, Math.min(28, unit * 0.75));
   }
+  return {x, edge, bw};
+}
+function renderBars(sel){
+  const wrap = $("#chart"), W = Math.max(320, wrap.clientWidth);
+  const i = barPilot(sel);
+  if (i != null) $("#barPilot").value = String(i);
+  geom = {kind:"bar"};
+  if (i == null){ wrap.innerHTML = `<p class="hint">No pilot selected.</p>`; $("#barLegend").innerHTML = ""; return; }
+
+  const {all, bars, finalBest, finalNo} = flightBars(i);
+
+  const H = Math.round(Math.max(300, Math.min(540, W * 0.52)));
+  const m = {t:26, r:16, b:28, l:56};
+  const d0 = S.from, d1 = Math.max(S.to, S.from + 1);
+  const pw = W - m.l - m.r, ih = H - m.t - m.b;
+  const {x, edge, bw} = barScale(bars, d0, d1, m, pw);
   bars.forEach(b => b.w = bw);
-  const ymax = Math.max(10, ...bars.map(b => b.total)) * 1.06;
+  const ymax = Math.max(10, ...all.map(b => b.total)) * 1.06; // the total line can sit above "Best" bars
   const y = v => m.t + ih - v / ymax * ih;
   const segs = [];
 
@@ -515,8 +599,8 @@ function renderBars(sel){
   // the pilot's league total, day by day: it steps up wherever a bar adds points
   const lo = Math.max(0, d0), hi = Math.min(M.D - 1, d1);
   let tl = `M${x(lo).toFixed(1)} ${y(M.score[i][lo]).toFixed(1)}`;
-  for (const b of bars) if (b.day > lo && b.day <= hi) // flat, then up at the bar's left edge and along its top
-    tl += `H${(x(b.day) - b.w / 2).toFixed(1)}V${y(b.total).toFixed(1)}`;
+  for (const b of all) if (b.day > lo && b.day <= hi) // flat, then up at the day's left edge (on every flying day, shown or not)
+    tl += `H${(x(b.day) - bw / 2).toFixed(1)}V${y(b.total).toFixed(1)}`;
   tl += `H${x(hi).toFixed(1)}`;
   g += `<path d="${tl}" fill="none" stroke="var(--text)" stroke-width="1.5" stroke-linejoin="round" opacity="0.8" pointer-events="none"/>`;
   g += `</g>`;
@@ -536,9 +620,9 @@ function renderBars(sel){
     `<div class="ps-head"><strong>${esc(p.name)}</strong><span class="m">${[p.club, p.wing, rk ? "#" + rk + " on " + fmtD(M.dates[S.at]) : ""].filter(Boolean).map(esc).join(" · ")}</span></div>
      <div class="ps-row"><span class="ps-total"><span class="m">Total</span> ${fmtS(finalBest.reduce((a, f) => a + f.s, 0))}</span>${cells}</div>
      <div class="ps-keys">
-       <span class="lg">${sq("var(--neutral)")} counted for a while, later replaced</span>
-       <span class="lg"><svg class="key" width="18" height="6" aria-hidden="true"><line x1="1" x2="17" y1="3" y2="3" stroke="var(--text)" stroke-width="2"/></svg> total score</span>
-       <span class="lg"><svg class="key" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg> flown but never counted</span>
+       ${S.barFlights !== "best" ? `<span class="lg">${sq("var(--neutral)")} counted for a while, later replaced</span>` : ""}
+       <span class="lg"><svg class="key" width="18" height="6" aria-hidden="true"><line x1="1" x2="17" y1="3" y2="3" stroke="var(--text)" stroke-width="2"/></svg> total score${S.barFlights === "best" ? " (bars show only the final best flights flown so far)" : ""}</span>
+       ${S.barFlights === "all" ? `<span class="lg"><svg class="key" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg> flown but never counted</span>` : ""}
        ${TYPE_KINDS.filter(k => usedTypes.includes(k.id)).map(k => `<span class="lg">${ico(k.glyph)} ${k.label}</span>`).join("")}
        ${finalBest.some(f => /declared/i.test(M.types[f.t] || "")) ? `<span class="lg">${ico(TYPE_KINDS.find(k => k.id === "tp").glyph, false, true)} yellow symbol: declared</span>` : ""}
        ${finalBest.some(f => /tow-launch/i.test(M.types[f.t] || "")) ? `<span class="lg">${ico(TYPE_KINDS.find(k => k.id === "tp").glyph, true)} green tile: tow launch</span>` : ""}
@@ -553,12 +637,132 @@ function renderBars(sel){
         <div class="m">${esc(M.sites[f.x] || "")}${M.types[f.t] ? " · " + esc(M.types[f.t]) : ""}</div>
         <div class="m">${esc(M.gliders[f.g] || "")}</div>
         <div style="margin-top:4px">${status}${sg.isNew ? " (new on this date)" : ""}</div>
-        <div class="m">Total on ${fmtD(M.dates[sg.bar.day])}: ${fmtS(sg.bar.total)}</div>
+        <div class="m">Total on ${fmtD(M.dates[sg.bar.day])}: ${fmtS(sg.bar.league)}</div>
         <div class="m" style="margin-top:4px">Click to open the flight on xcleague.com</div>`, e);
     });
     el.addEventListener("pointerleave", () => { $("#tip").style.display = "none"; });
   });
 }
+/* ---------- club bars: one club, a bar on each day its pilots flew, stacking the pilots counting for it then ---------- */
+// Like flightBars, but the segments are pilots (their league score that day) instead of flights.
+//   all     - every day a club pilot flew, with hollow circles for pilots whose flying that day didn't add to the club
+//   scoring - only days the club's score went up
+//   best    - only days one of the final top 4 pilots' score went up, stacking just those pilots
+function clubBars(c){
+  const mem = M.members[c];
+  const finalTop = clubCounted(c, M.D - 1);              // the pilots counting at the end, best first
+  const finalNo = new Map(finalTop.map((p, n) => [p, n])); // pilot -> 0..3
+  const flewOn = new Map();
+  for (const p of mem) for (const f of M.byP[p]) { if (!flewOn.has(f.day)) flewOn.set(f.day, new Set()); flewOn.get(f.day).add(p); }
+  const days = [...flewOn.keys()].sort((a, b) => a - b);
+  const up = (p, day) => M.score[p][day] > (day ? M.score[p][day - 1] : 0);
+  const all = days.map(day => {
+    const counted = clubCounted(c, day), flew = [...flewOn.get(day)];
+    const helped = flew.filter(p => counted.includes(p) && up(p, day)); // their flying added to the club's score
+    return {day, total: M.cScore[c][day], counted, flew, helped};
+  });
+  const mode = S.barFlights;
+  // stack order: the final pilots 1-4 from the bottom, then replaced pilots, higher score first
+  const order = day => (a, b) => (finalNo.get(a) ?? 99) - (finalNo.get(b) ?? 99) || M.score[b][day] - M.score[a][day];
+  const bars = all.filter(b => mode === "all" ? true
+      : mode === "scoring" ? b.helped.length > 0
+      : b.flew.some(p => finalNo.has(p) && up(p, b.day)))
+    .map(b => {
+      const who = mode === "best" ? finalTop.filter(p => M.score[p][b.day] > 0) : b.counted.slice();
+      const stack = who.sort(order(b.day)).map(p => ({p, s: M.score[p][b.day], isNew: b.flew.includes(p) && up(p, b.day)})); // final pilot 1 at the bottom
+      return {day: b.day, league: b.total, total: stack.reduce((a, g) => a + g.s, 0), stack,
+              missed: mode === "all" ? b.flew.filter(p => !b.helped.includes(p)) : []};
+    });
+  return {all, bars, finalTop, finalNo};
+}
+function renderClubBars(sel){
+  const wrap = $("#chart"), W = Math.max(320, wrap.clientWidth);
+  const c = barPilot(sel);
+  if (c != null) $("#barPilot").value = String(c);
+  geom = {kind:"bar"};
+  if (c == null){ wrap.innerHTML = `<p class="hint">No club selected.</p>`; $("#barLegend").innerHTML = ""; return; }
+
+  const {all, bars, finalTop, finalNo} = clubBars(c);
+  const H = Math.round(Math.max(300, Math.min(540, W * 0.52)));
+  const m = {t:26, r:16, b:28, l:56};
+  const d0 = S.from, d1 = Math.max(S.to, S.from + 1);
+  const pw = W - m.l - m.r, ih = H - m.t - m.b;
+  const {x, edge, bw} = barScale(bars, d0, d1, m, pw);
+  const ymax = Math.max(10, ...all.map(b => b.total)) * 1.06;
+  const y = v => m.t + ih - v / ymax * ih;
+  const segs = [];
+
+  let g = `<defs><clipPath id="plot"><rect x="${m.l - 30}" y="0" width="${pw + 60}" height="${H}"/></clipPath></defs>`;
+  for (const v of niceTicks(0, ymax, 6)){
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>`;
+    g += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toLocaleString("en-GB")}</text>`;
+  }
+  g += timeAxis(d0, d1, edge, m, W, H, S.barScale !== "calendar");
+  g += `<text x="${m.l - 8}" y="${m.t - 12}" text-anchor="end" style="font-size:10px">score</text>`;
+  if (S.at >= d0 && S.at <= d1)
+    g += `<line x1="${x(S.at)}" x2="${x(S.at)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+  g += `<g clip-path="url(#plot)">`;
+  for (const b of bars){
+    if (b.day < d0 - 1 || b.day > d1 + 1) continue;
+    const X = x(b.day) - bw / 2;
+    let base = 0;
+    for (const sg of b.stack){
+      const top = y(base + sg.s), bottom = y(base), h = Math.max(1, bottom - top - (bottom - top > 3 ? 1 : 0));
+      const n = finalNo.get(sg.p);
+      segs.push({...sg, bar: b});
+      g += `<rect class="cseg" x="${X}" y="${top}" width="${bw}" height="${h}" fill="${n == null ? "var(--neutral)" : `var(--s${n + 1})`}" data-seg="${segs.length - 1}"/>`;
+      base += sg.s;
+    }
+    let cy = y(b.total) - 7;
+    for (const p of b.missed){
+      segs.push({p, s: M.score[p][b.day], bar: b, missed: true});
+      g += `<circle class="cseg" cx="${x(b.day)}" cy="${cy}" r="${Math.min(4, Math.max(2.5, bw / 2))}" fill="var(--surface)" stroke="var(--muted)" stroke-width="1.5" data-seg="${segs.length - 1}"/>`;
+      cy -= 9;
+    }
+  }
+  const lo = Math.max(0, d0), hi = Math.min(M.D - 1, d1);
+  let tl = `M${x(lo).toFixed(1)} ${y(M.cScore[c][lo]).toFixed(1)}`;
+  for (const b of all) if (b.day > lo && b.day <= hi) tl += `H${(x(b.day) - bw / 2).toFixed(1)}V${y(b.total).toFixed(1)}`;
+  tl += `H${x(hi).toFixed(1)}`;
+  g += `<path d="${tl}" fill="none" stroke="var(--text)" stroke-width="1.5" stroke-linejoin="round" opacity="0.8" pointer-events="none"/>`;
+  g += `</g>`;
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Pilots counting for ${esc(M.clubs[c])} over time">${g}</svg>`;
+
+  // summary: like the league's club table, the club's final total and the pilots who make it up
+  const rk = M.cRank[c][S.at], sq = col => `<svg class="key" width="12" height="12" aria-hidden="true"><rect width="12" height="12" rx="2" fill="${col}"/></svg>`;
+  const cells = finalTop.map((p, n) => `<span class="fc" style="--c:var(--s${n + 1})"><button data-flights="${p}" title="See ${esc(M.pilots[p].name)}'s flights"><span class="sc">${fmtS(M.score[p][M.D - 1])}</span> ${esc(M.pilots[p].name)}</button></span>`).join("");
+  $("#barLegend").innerHTML =
+    `<div class="ps-head"><strong>${esc(M.clubs[c])}</strong><span class="m">${[rk ? "#" + rk + " on " + fmtD(M.dates[S.at]) : "", M.cN[c][S.at] + " pilots with a score"].filter(Boolean).join(" · ")}</span></div>
+     <div class="ps-row"><span class="ps-total"><span class="m">Total</span> ${fmtS(M.cScore[c][M.D - 1])}</span>${cells}</div>
+     <div class="ps-keys">
+       <span class="lg">Club score = best ${M.clubN} pilots' scores added together</span>
+       ${S.barFlights !== "best" ? `<span class="lg">${sq("var(--neutral)")} counted for a while, later replaced</span>` : ""}
+       <span class="lg"><svg class="key" width="18" height="6" aria-hidden="true"><line x1="1" x2="17" y1="3" y2="3" stroke="var(--text)" stroke-width="2"/></svg> club score${S.barFlights === "best" ? " (bars show only the final top " + M.clubN + ")" : ""}</span>
+       ${S.barFlights === "all" ? `<span class="lg"><svg class="key" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg> flew, but didn't add to the club score</span>` : ""}
+     </div>`;
+
+  wrap.querySelectorAll("[data-seg]").forEach(el => {
+    el.addEventListener("pointermove", e => {
+      const sg = segs[+el.dataset.seg], n = finalNo.get(sg.p);
+      const status = sg.missed ? `Flew, but didn't add to the club score`
+        : n != null ? `Counts in the final club score as pilot ${n + 1}` : `Counted for a while, later replaced by a better club pilot`;
+      showTip(`<div class="d">${fmtD(M.dates[sg.bar.day])}</div>
+        <div><strong>${esc(M.pilots[sg.p].name)}</strong> — ${fmtS(sg.s)} pts</div>
+        <div style="margin-top:4px">${status}${sg.isNew ? " (score went up on this date)" : ""}</div>
+        <div class="m">Club score on ${fmtD(M.dates[sg.bar.day])}: ${fmtS(sg.bar.league)}</div>
+        <div class="m" style="margin-top:4px">Click to see this pilot's flights</div>`, e);
+    });
+    el.addEventListener("pointerleave", () => { $("#tip").style.display = "none"; });
+    el.addEventListener("click", () => showPilotFlights(segs[+el.dataset.seg].p));
+  });
+}
+// Jump from a club to one of its pilots' Breakdown
+function showPilotFlights(p){
+  setStd("pilots");
+  S.barPilot = p; S.chart = "bar";
+  update();
+}
+
 // Flight-type icons: the symbol shows the shape of the flight, a yellow symbol means declared,
 // and a green tile means tow-launched (blue tile and white symbol otherwise)
 const ico = (body, tow, declared) => {
@@ -567,8 +771,8 @@ const ico = (body, tow, declared) => {
 };
 const TYPE_KINDS = [
   {id:"fai",     test:/fai triangle/i,   label:"FAI triangle",   glyph:'<path d="M7.5 1.5 13.5 11.5H1.5Z" fill="currentColor"/>'},
-  {id:"flat",    test:/flat triangle/i,  label:"flat triangle",  glyph:'<path d="M5 3 13.5 11.5H1.5Z"/>'},
-  {id:"oar",     test:/out and return/i, label:"out & return",   glyph:'<path d="M1.5 6.5H13.5"/><path d="M4.5 3.5 1.5 6.5 4.5 9.5"/><path d="M10.5 3.5 13.5 6.5 10.5 9.5"/>'},
+  {id:"flat",    test:/flat triangle/i,  label:"flat triangle",  glyph:'<path d="M3.5 2.5 11.5 10.5H3.5Z" fill="currentColor"/>'},
+  {id:"oar",     test:/out and return/i, label:"out & return",   glyph:'<path d="M4.5 6.5H10.5" stroke-width="2.8" stroke-linecap="butt"/><path d="M1.5 6.5 5.5 3V10Z" fill="currentColor"/><path d="M13.5 6.5 9.5 3V10Z" fill="currentColor"/>'},
   {id:"goal",    test:/goal/i,           label:"flight to goal", glyph:'<path d="M1.5 6.5H12.5"/><path d="M9.5 3.5 12.5 6.5 9.5 9.5"/>'},
   {id:"coastal", test:/coastal/i,        label:"coastal turnpoint", glyph:'<path d="M2.5 7.5V2.5H11"/><path d="M8.5 0 11 2.5 8.5 5"/><path d="M1.5 11.5q1.5-2 3 0t3 0 3 0 3 0"/>'},
   {id:"open",    test:/open distance/i,  label:"open distance",  glyph:'<path d="M1.5 6.5H9"/><path d="M6 3.5 9 6.5 6 9.5"/><path d="M10 3.5 13 6.5 10 9.5"/>'},
@@ -593,9 +797,18 @@ function showTip(html, e){
 
 /* ---------- table, chips, hint ---------- */
 function renderTable(sel){
-  const at = S.at;
-  $("#thRank").textContent = "Rank on " + fmtD(M.dates[at]);
-  const rows = sel.slice().sort((a, b) => (M.rank[a][at] || 1e9) - (M.rank[b][at] || 1e9));
+  const at = S.at, rankTh = `<th class="num">Rank on ${fmtD(M.dates[at])}</th>`;
+  const rows = sel.slice().sort((a, b) => (E.rank[a][at] || 1e9) - (E.rank[b][at] || 1e9));
+  const rmBtn = i => S.mode === "pick" ? `<button class="x" data-rm="${i}" aria-label="Remove ${esc(E.name(i))}">×</button>` : "";
+  if (E.kind === "clubs"){
+    $("#thead").innerHTML = `<tr><th>Club</th><th>Best ${M.clubN} pilots</th>${rankTh}<th class="num">Score</th><th class="num">Pilots</th><th></th></tr>`;
+    $("#rows").innerHTML = rows.map(c => {
+      const top = clubCounted(c, at).map(p => `${esc(M.pilots[p].name)} <span style="color:var(--text2)">${fmtS(M.score[p][at])}</span>`).join(", ");
+      return `<tr data-i="${c}"><td>${keySvg(c)} ${esc(M.clubs[c])}</td><td>${top || "–"}</td><td class="num">${M.cRank[c][at] || "–"}</td><td class="num">${fmtS(M.cScore[c][at])}</td><td class="num">${M.cN[c][at]}</td><td>${rmBtn(c)}</td></tr>`;
+    }).join("") || `<tr><td colspan="6" style="color:var(--muted)">No clubs selected.</td></tr>`;
+    return;
+  }
+  $("#thead").innerHTML = `<tr><th>Pilot</th><th>Club</th><th>Glider</th>${rankTh}<th class="num">Score</th><th class="num">Flights</th><th></th></tr>`;
   $("#rows").innerHTML = rows.map(i => {
     const p = M.pilots[i], r = M.rank[i][at];
     const rm = S.mode === "pick" ? `<button class="x" data-rm="${i}" aria-label="Remove ${esc(p.name)}">×</button>` : "";
@@ -605,19 +818,23 @@ function renderTable(sel){
 function renderChips(){
   const c = $("#chips");
   if (S.mode !== "pick"){ c.innerHTML = ""; return; }
-  c.innerHTML = S.picks.map(i => `<span class="chip">${keySvg(i)}${esc(M.pilots[i].name)}<button data-rm="${i}" aria-label="Remove">×</button></span>`).join("");
+  c.innerHTML = S.picks.map(i => `<span class="chip">${keySvg(i)}${esc(E.name(i))}<button data-rm="${i}" aria-label="Remove">×</button></span>`).join("");
 }
 function hintText(){
-  if (S.chart === "bar") return `A bar on each day the pilot flew, stacking the flights counting towards their score that day (oldest at the bottom); the line is their total score. In Compact time scale each flying day gets an equal slot and the gaps between flights are shortened (faint lines mark month starts). Colours are the flights in the final best ${M.bestN}; the day's new flight is the top segment. Click a segment to open that flight on xcleague.com. Choose another pilot in the Pilot box or by clicking a table row.`;
-  return `League score = best ${M.bestN} flights to date. Hover a line, legend entry or table row to pick out a pilot; click to keep it picked out (click again or press Esc to release). Click the chart to move the ranking date.` +
+  if (E.kind === "clubs"){
+    if (S.chart === "bar") return `A bar on each day the club's pilots flew, stacking the pilots counting for the club that day; each segment is that pilot's league score, and the line is the club score. Colours are the final best ${M.clubN} pilots, pilot 1 at the bottom. Show: All shows every flying day, Scoring only days the club score went up, Best only the final ${M.clubN} pilots. Click a segment or a pilot above the chart to see that pilot's flights.`;
+    return `Club score = the club's best ${M.clubN} pilots' league scores added together (each pilot's score is their best ${M.bestN} flights). Hover a line, legend entry or table row to pick out a club; click a line or row to keep it picked out (click again or press Esc to release). Click a name in the legend to see that club's Breakdown. Click the chart to move the ranking date.` +
+           (slotOf.size > HUES ? " With more than 8 clubs, lines 9–16 are dashed and 17–24 dotted." : "");
+  }
+  if (S.chart === "bar") return `A bar on each day the pilot flew, stacking the flights counting towards their score that day (oldest at the bottom); the line is their total score. In Compact time scale each flying day gets an equal slot and the gaps between flights are shortened (faint lines mark month starts). Colours are the flights in the final best ${M.bestN}; the day's new flight is the top segment. Show: All shows every flight, Scoring leaves out flights that never counted, Best shows only the final best ${M.bestN}; bar widths, time compression and the Period refit to the flights shown. Click a segment to open that flight on xcleague.com. Choose another pilot in the Pilot box.`;
+  return `League score = best ${M.bestN} flights to date. Hover a line, legend entry or table row to pick out a pilot; click a line or row to keep it picked out (click again or press Esc to release). Click a name in the legend to see that pilot's flights. Click the chart to move the ranking date.` +
          (slotOf.size > HUES ? " With more than 8 pilots, lines 9–16 are dashed and 17–24 dotted." : "");
 }
 
 /* ---------- wiring ---------- */
 // Period: first to last flight of the pilots shown (2 days' margin, at least 3 weeks); the whole league if none
-function fitRange(ids){
+function fitRange(days){
   let a = M.firstDay, b = M.lastDay;
-  const days = (ids || []).flatMap(i => M.byP[i].map(f => f.day));
   if (days.length){
     a = Math.min(...days) - 2; b = Math.max(...days) + 2;
     if (b - a < 21){ const mid = Math.round((a + b) / 2); a = mid - 10; b = mid + 11; }
@@ -628,31 +845,145 @@ function fitRange(ids){
 function syncRangeInputs(){ $("#from").value = isoD(M.dates[S.from]); $("#to").value = isoD(M.dates[S.to]); }
 function update(){
   $("#atLbl").textContent = fmtD(M.dates[S.at]);
-  for (const [id, key] of [["#mode", "mode"], ["#metric", "metric"], ["#chartType", "chart"], ["#barScale", "barScale"]])
+  for (const [id, key] of [["#std", "std"], ["#mode", "mode"], ["#metric", "metric"], ["#chartType", "chart"], ["#barScale", "barScale"], ["#barFlights", "barFlights"]])
     document.querySelectorAll(id + " button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S[key]));
   document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(S.mode));
   document.querySelectorAll("[data-chart]").forEach(el => el.hidden = el.dataset.chart !== S.chart);
+  document.querySelectorAll("[data-std]").forEach(el => el.hidden = el.dataset.std !== S.std);
   $("#barLegend").hidden = S.chart !== "bar";
-  $("#search").placeholder = S.mode === "pick" ? "Add a pilot…" : "Type a name…";
+  $("#search").placeholder = S.mode === "pick" ? `Add a ${E.noun}…` : "Type a name…";
+  $("#sub").textContent = `Rank or league score for each ${E.noun}, day by day through the ${M.season} season (${E.n} ${E.nouns}).`;
+  setTips();
   render();
 }
-function setupUI(){
-  $("#sub").textContent = `Rank or league score for each pilot, day by day through the ${M.season} season (${M.pilots.length} pilots).`;
-  $("#names").innerHTML = M.bySurname.map(i => `<option value="${esc(M.pilots[i].label)}">`).join("");
+// Tooltips for every control, worded for pilots or clubs. Keys are "#control" or "#control:button value".
+function setTips(){
+  const club = E.kind === "clubs", n = E.noun, ns = E.nouns;
+  const tips = {
+    "#season": "The league year (1 November to 31 October)",
+    "#std:pilots": `Pilot standings: each pilot's score is their best ${M.bestN} flights added together`,
+    "#std:clubs": `Club standings: each club's score is its best ${M.clubN} pilots' scores added together`,
+    "#mode:top": `The top ${ns} at the "Ranked at" date`,
+    "#mode:pick": `${ns[0].toUpperCase() + ns.slice(1)} you choose: type a name to add one, × to remove it`,
+    "#mode:around": `One ${n} and the ${ns} ranked just above and below them at the "Ranked at" date`,
+    "#mode:club": `The top pilots within one club`,
+    "#n": `How many ${ns} to show`,
+    "#club": "The club whose pilots are shown",
+    "#search": club ? "Type a club name" : "Type a pilot's name (surname or first name first)",
+    "#k": `How many places above and below the chosen ${n}`,
+    "#at": "The date the standings are taken from: used for Top N, Around and Club, the table and the Breakdown. You can also click the chart.",
+    "#chartType:line": `Compare: rank or score of the ${ns} shown, day by day, as lines`,
+    "#chartType:bar": club ? "Breakdown: one club's score split into the pilots who make it up, day by day" : "Breakdown: one pilot's score split into the flights that make it up, day by day",
+    "#metric:rank": "Plot league position (1 at the top)",
+    "#metric:score": "Plot league score",
+    "#barPilot": `The ${n} to break down`,
+    "#barFlights:all": club ? "Every day the club's pilots flew, including flying that didn't add to the club score" : "Every flight, including ones that never counted",
+    "#barFlights:scoring": club ? "Only days the club score went up" : "Only flights that counted at the time; leaves out flights that never counted",
+    "#barFlights:best": club ? `Only the club's final best ${M.clubN} pilots` : `Only the pilot's final best ${M.bestN} flights`,
+    "#barScale:compact": "Each flying day gets an equal slot and long gaps between flights are shortened",
+    "#barScale:calendar": "True dates: the gaps between flights are to scale",
+    "#from": "Start of the period shown",
+    "#to": "End of the period shown",
+    "#resetRange": `Fit the period to the ${S.chart === "bar" ? (club ? "club's flying" : "pilot's flights") : ns + " shown"}`,
+  };
+  for (const [k, t] of Object.entries(tips)){
+    const [id, v] = k.split(":");
+    const el = v ? document.querySelector(`${id} button[data-v="${v}"]`) : document.querySelector(id);
+    if (el) el.title = t;
+  }
+}
+// Words and lists that depend on whether pilots or clubs are shown
+function syncEntityLists(){
+  E = entities();
+  document.querySelectorAll(".noun").forEach(el => el.textContent = E.nouns);
+  document.querySelectorAll(".noun1").forEach(el => el.textContent = el.classList.contains("cap") ? E.noun[0].toUpperCase() + E.noun.slice(1) : E.noun);
+  $("#names").innerHTML = E.sorted.map(i => `<option value="${esc(E.label(i))}">`).join("");
+  $("#barPilot").innerHTML = E.sorted.map(i => `<option value="${i}">${esc(E.label(i))}</option>`).join("");
+  if (S.mode === "around") $("#search").value = S.focus != null ? E.label(S.focus) : "";
+  else if (S.mode !== "pick") $("#search").value = "";
+}
+// Default choices for the standings shown: the top 3 to compare, and someone mid-table to look around
+function defaultChoices(){
+  const top = [...Array(E.n).keys()].filter(i => E.rank[i][S.at]).sort((a, b) => E.rank[a][S.at] - E.rank[b][S.at]);
+  return {picks: top.slice(0, 3), focus: top[Math.min(E.kind === "clubs" ? 5 : 24, top.length - 1)], barPilot: null, pin: null, hl: null};
+}
+// Switch between pilot and club standings; each keeps its own choices
+function setStd(v){
+  if (v === S.std) return;
+  S.saved[S.std] = Object.fromEntries(PER_STD.map(k => [k, S[k]]));
+  S.std = v; E = entities();
+  Object.assign(S, S.saved[v] || defaultChoices());
+  if (v === "clubs" && S.mode === "club") S.mode = "top";
+  slotOf.clear(); S.rangeKey = null;
+  syncEntityLists();
+}
+// Point the page at a newly loaded season. Pilots (or clubs) chosen in the previous season are kept where they are
+// also in this one (pilots matched by ID, clubs by name); otherwise the defaults apply.
+function applySeason(data, prev){
+  const keys = prev ? list => list.map(i => i == null ? null : E.key(i)) : null; // E still describes the old season
+  const keep = keys ? {picks: keys(S.picks), focus: keys([S.focus])[0], bar: keys([S.barPilot])[0]} : null;
+  M = buildModel(data);
+  E = entities(); S.saved = {};
+  const idx = new Map([...Array(E.n).keys()].map(i => [E.key(i), i]));
+  document.title = `UK XC League ${M.season} – standings over time`;
+  $("#h1").textContent = `UK XC League ${M.season} — standings through the season`;
+  const src = $("#source");
+  src.textContent = data.source ? "Data: " + data.source + ". Standings rebuilt from final, moderated flights, so they may differ slightly from the live table on a given day." : "";
+  src.hidden = !data.source;
   $("#club").innerHTML = M.clubs.map(c => `<option>${esc(c)}</option>`).join("");
-  S.club = M.clubs[0] || "";
+  if (!M.clubs.includes(S.club)) S.club = M.clubs[0] || "";
+  $("#club").value = S.club;
   const at = $("#at"); at.min = M.firstDay; at.max = M.lastDay; S.at = M.lastDay; at.value = S.at;
-  S.from = M.firstDay; S.to = M.lastDay;
+  S.from = M.firstDay; S.to = M.lastDay; S.rangeKey = null;
   for (const id of ["#from", "#to"]){ $(id).min = isoD(M.dates[0]); $(id).max = isoD(M.dates[M.D - 1]); }
   syncRangeInputs();
-  const top = M.pilots.map((_, i) => i).filter(i => M.rank[i][S.at]).sort((a, b) => M.rank[a][S.at] - M.rank[b][S.at]);
-  S.picks = top.slice(0, 3); S.focus = top[Math.min(24, top.length - 1)];
+  slotOf.clear();
+  const def = defaultChoices();
+  const picks = keep ? keep.picks.map(k => idx.get(k)).filter(i => i != null) : [];
+  Object.assign(S, def, {
+    picks: picks.length ? picks : def.picks,
+    focus: keep && idx.has(keep.focus) ? idx.get(keep.focus) : def.focus,
+    barPilot: keep && idx.has(keep.bar) ? idx.get(keep.bar) : null,
+  });
+  syncEntityLists();
+}
+let loading = 0;
+async function loadSeason(season){
+  const ticket = ++loading;
+  const file = `data/league-${season}.json`;
+  let data;
+  try {
+    const r = await fetch(file);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    data = await r.json();
+  } catch (e) {
+    if (ticket !== loading) return;
+    const el = $("#err"); el.hidden = false;
+    el.textContent = `Couldn't load ${file} (${e.message}). The page must be opened through a web server rather than as a local file.`;
+    if (M) $("#season").value = M.season;
+    return;
+  }
+  if (ticket !== loading) return; // a later choice of season overtook this one
+  $("#err").hidden = true;
+  applySeason(data, M);
+  $("#season").value = M.season;
+  update();
+}
+
+function setupUI(){
+  const at = $("#at");
+  $("#season").addEventListener("change", e => loadSeason(e.target.value));
 
   const segClick = (id, key, after) => $(id).addEventListener("click", e => { const v = e.target.dataset.v; if (v){ S[key] = v; after && after(v); update(); } });
-  segClick("#mode", "mode", v => { S.hl = null; $("#search").value = v === "around" && S.focus != null ? M.pilots[S.focus].label : ""; });
+  $("#std").addEventListener("click", e => { const v = e.target.closest("button")?.dataset.v; if (v){ setStd(v); update(); } });
+  $("#mode").addEventListener("click", e => {
+    const v = e.target.closest("button")?.dataset.v; if (!v) return;
+    S.mode = v; S.hl = null; $("#search").value = v === "around" && S.focus != null ? E.label(S.focus) : ""; update();
+  });
   segClick("#metric", "metric");
   segClick("#chartType", "chart");
   segClick("#barScale", "barScale");
+  segClick("#barFlights", "barFlights");
   $("#n").addEventListener("input", e => { const v = +e.target.value; if (v >= 1){ S.n = Math.min(100, v); update(); } });
   $("#k").addEventListener("input", e => { const v = +e.target.value; if (v >= 1){ S.k = Math.min(30, v); update(); } });
   $("#barPilot").addEventListener("change", e => { S.barPilot = +e.target.value; render(); });
@@ -661,10 +992,9 @@ function setupUI(){
   const dayOf = v => Math.round((parseD(v) - M.dates[0]) / DAY);
   $("#from").addEventListener("change", e => { if (!e.target.value) return; S.from = Math.max(0, Math.min(dayOf(e.target.value), S.to - 1)); syncRangeInputs(); update(); });
   $("#to").addEventListener("change", e => { if (!e.target.value) return; S.to = Math.min(M.D - 1, Math.max(dayOf(e.target.value), S.from + 1)); syncRangeInputs(); update(); });
-  $("#resetRange").title = "Fit to the flights shown";
   $("#resetRange").addEventListener("click", () => { S.rangeKey = null; update(); });
   $("#search").addEventListener("change", e => {
-    const i = M.byName.get(e.target.value.trim().toLowerCase()); if (i == null) return;
+    const i = E.byName.get(e.target.value.trim().toLowerCase()); if (i == null) return;
     if (S.mode === "pick"){ if (!S.picks.includes(i)) S.picks.push(i); e.target.value = ""; }
     else S.focus = i;
     update();
@@ -672,6 +1002,8 @@ function setupUI(){
   document.addEventListener("click", e => {
     const rm = e.target.closest("[data-rm]");
     if (rm){ const i = +rm.dataset.rm; S.picks = S.picks.filter(p => p !== i); update(); return; }
+    const fl = e.target.closest("[data-flights]"); // a club's pilot in the summary above the chart
+    if (fl){ showPilotFlights(+fl.dataset.flights); return; }
     const tr = e.target.closest("#rows tr[data-i]");
     if (tr && S.chart === "bar"){ S.barPilot = +tr.dataset.i; render(); }
     else if (tr && S.chart === "line" && !e.target.closest("button")) togglePin(+tr.dataset.i);
@@ -681,23 +1013,26 @@ function setupUI(){
   const lg = $("#lineLegend");
   lg.addEventListener("mouseover", e => { const b = e.target.closest(".li"); setHl(b ? +b.dataset.i : null); });
   lg.addEventListener("mouseleave", () => setHl(null));
-  lg.addEventListener("click", e => { const b = e.target.closest(".li"); if (b) togglePin(+b.dataset.i); });
+  // a legend entry opens that pilot's (or club's) Breakdown; hovering still picks out the line
+  lg.addEventListener("click", e => { const b = e.target.closest(".li"); if (b){ S.barPilot = +b.dataset.i; S.chart = "bar"; S.hl = null; update(); } });
   addEventListener("keydown", e => { if (e.key === "Escape" && S.pin != null){ S.pin = null; applyHighlight(); } });
   let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });
 }
 async function init(){
+  let seasons;
   try {
-    const r = await fetch("league-2026.json");
+    const r = await fetch("data/seasons.json");
     if (!r.ok) throw new Error("HTTP " + r.status);
-    const data = await r.json();
-    M = buildModel(data);
-    if (data.source){ const el = $("#source"); el.textContent = "Data: " + data.source + ". Standings rebuilt from final, moderated flights, so they may differ slightly from the live table on a given day."; el.hidden = false; }
+    seasons = (await r.json()).seasons.map(s => s.season); // newest first
+    if (!seasons.length) throw new Error("no seasons listed");
   } catch (e) {
     const el = $("#err"); el.hidden = false;
-    el.textContent = "Couldn't load league-2026.json (" + e.message + "). It must sit next to this page, and the page must be opened through a web server rather than as a local file.";
+    el.textContent = "Couldn't load data/seasons.json (" + e.message + "). The page must be opened through a web server rather than as a local file.";
     return;
   }
-  setupUI(); update();
+  $("#season").innerHTML = seasons.map(s => `<option>${esc(s)}</option>`).join("");
+  setupUI();
+  await loadSeason(seasons[0]);
 }
 init();
 </script>

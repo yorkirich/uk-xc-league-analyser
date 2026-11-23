@@ -1,0 +1,114 @@
+{
+ "seasons": [
+  {
+   "season": "2026",
+   "pilots": 277,
+   "flights": 2393
+  },
+  {
+   "season": "2025",
+   "pilots": 305,
+   "flights": 2729
+  },
+  {
+   "season": "2024",
+   "pilots": 298,
+   "flights": 2541
+  },
+  {
+   "season": "2023",
+   "pilots": 312,
+   "flights": 2471
+  },
+  {
+   "season": "2022",
+   "pilots": 340,
+   "flights": 2904
+  },
+  {
+   "season": "2021",
+   "pilots": 281,
+   "flights": 1957
+  },
+  {
+   "season": "2020",
+   "pilots": 122,
+   "flights": 508
+  },
+  {
+   "season": "2019",
+   "pilots": 308,
+   "flights": 2211
+  },
+  {
+   "season": "2018",
+   "pilots": 327,
+   "flights": 2707
+  },
+  {
+   "season": "2017",
+   "pilots": 325,
+   "flights": 2532
+  },
+  {
+   "season": "2016",
+   "pilots": 310,
+   "flights": 2067
+  },
+  {
+   "season": "2015",
+   "pilots": 310,
+   "flights": 2116
+  },
+  {
+   "season": "2014",
+   "pilots": 279,
+   "flights": 2101
+  },
+  {
+   "season": "2013",
+   "pilots": 279,
+   "flights": 1989
+  },
+  {
+   "season": "2012",
+   "pilots": 224,
+   "flights": 1666
+  },
+  {
+   "season": "2011",
+   "pilots": 232,
+   "flights": 1626
+  },
+  {
+   "season": "2010",
+   "pilots": 231,
+   "flights": 1584
+  },
+  {
+   "season": "2009",
+   "pilots": 177,
+   "flights": 1264
+  },
+  {
+   "season": "2008",
+   "pilots": 128,
+   "flights": 730
+  },
+  {
+   "season": "2007",
+   "pilots": 164,
+   "flights": 1053
+  },
+  {
+   "season": "2006",
+   "pilots": 166,
+   "flights": 859
+  },
+  {
+   "season": "2005",
+   "pilots": 182,
+   "flights": 985
+  }
+ ]
+}

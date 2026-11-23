@@ -3,4 +3,5 @@ node_modules/
 Thumbs.db
 desktop.ini
 .vscode/
-.claude/settings.local.json
+.claude/
+.cloudflare/
