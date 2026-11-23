@@ -2,6 +2,8 @@
 
 An interactive chart of how the UK XC League 2026 standings developed through the season. You can pick pilots (top N, individual pilots, a pilot and their neighbours, or a club) and see their rank or score day by day. You can also see the six flights behind each pilot's score, with links to each flight on xcleague.com.
 
+**Live site:** https://uk-xc-league-analyser.pages.dev
+
 It's a static site: one HTML page plus one JSON data file. There's no server code, no database and no build tooling beyond a small Node script.
 
 ## Files
@@ -111,10 +113,10 @@ In each flight, `p` is the pilot ID, `d` the date, `s` the score and `f` the fli
 
 ## Deploying (Cloudflare Pages)
 
-1. Put this folder in a GitHub repository (include `league-2026.json`; `raw/` is optional).
-2. In Cloudflare: **Workers & Pages → Create → Pages → Connect to Git** and choose the repo.
-3. Build settings: no framework, **no build command**, output directory `/` (the repo root).
-4. Each push to the main branch redeploys.
+The repo is https://github.com/yorkirich/uk-xc-league-analyser. It's connected to the Cloudflare Pages project `uk-xc-league-analyser`, which has no framework, **no build command** and serves the repo root.
+
+- Each push to `main` redeploys https://uk-xc-league-analyser.pages.dev.
+- Pushes to other branches get their own preview URLs.
 
 No Worker, KV or R2 is needed, because all the data is static.
 
