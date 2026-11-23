@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UK XC League 2026 – standings over time</title>
+<style>
+:root{
+  color-scheme:light;
+  --surface:#fcfcfb;--panel:#f3f2ef;--text:#0b0b0b;--text2:#52514e;--muted:#8a8984;
+  --grid:#e8e7e3;--axis:#c9c8c3;--neutral:#c4c3bd;--accent:#2a78d6;--err-bg:#fde8e8;--err-text:#7a1d1d;
+  --tile:#3557b7;--tow:#2e8b3d;--declared:#ffd43b;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#6250d6;--s8:#e34948;
+}
+@media (prefers-color-scheme:dark){:root{
+  color-scheme:dark;
+  --surface:#1a1a19;--panel:#242423;--text:#f0efec;--text2:#c3c2b7;--muted:#8e8d86;
+  --grid:#2c2c2a;--axis:#4a4a47;--neutral:#4f4f4b;--accent:#3987e5;--err-bg:#3a1a1a;--err-text:#f3b4b4;
+  --tile:#4a6fd0;--tow:#3a9c4a;--declared:#ffd84d;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#0ca30c;--s7:#9085e9;--s8:#e66767;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:20px;margin:0 0 2px;font-weight:650}
+.sub{color:var(--text2);margin:0 0 14px}
+.err{background:var(--err-bg);color:var(--err-text);padding:8px 12px;border-radius:8px;margin-bottom:14px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;background:var(--panel);padding:12px 14px;border-radius:10px;margin-bottom:12px}
+.ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctl>label,.lbl{font-size:12px;color:var(--text2)}
+.row{display:flex;gap:6px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--axis);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--text);padding:6px 11px;font:inherit;cursor:pointer}
+.seg button+button{border-left:1px solid var(--axis)}
+.seg button[aria-pressed=true]{background:var(--text);color:var(--surface)}
+input,select,.btn{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--axis);border-radius:7px;padding:5px 8px}
+.btn{cursor:pointer}
+input[type=number]{width:70px}
+input[type=range]{padding:0;width:220px;accent-color:var(--accent)}
+.search{width:220px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 10px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--axis);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px}
+.chip button{border:0;background:transparent;color:var(--text2);cursor:pointer;font-size:15px;line-height:1;padding:0 4px}
+.key{display:inline-block;vertical-align:middle}
+#chartWrap{position:relative}
+#chart svg{display:block;width:100%}
+#chart text{fill:var(--text2);font-size:11px}
+#chart text.seglbl{fill:#fff;font-size:10px;font-weight:600;pointer-events:none}
+#chart a rect{cursor:pointer}
+#chart a:hover rect,#chart a:focus rect{filter:brightness(1.12)}
+#chart a:focus{outline:none}
+#chart a:focus rect{stroke:var(--text);stroke-width:2}
+#tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--axis);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.12);min-width:190px;max-width:300px;display:none;z-index:2}
+#tip .d{font-weight:600;margin-bottom:4px}
+#tip .r{display:flex;gap:8px;align-items:center;white-space:nowrap}
+#tip .r .n{flex:1;overflow:hidden;text-overflow:ellipsis}
+#tip .r .v{font-variant-numeric:tabular-nums;color:var(--text2)}
+#tip .m{color:var(--text2)}
+.legend{font-size:12px;margin:0 0 8px}
+.legend .m{color:var(--muted)}
+.ps-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:14px;margin-bottom:6px}
+.ps-head .m{font-size:12px}
+.ps-row{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;margin-bottom:8px}
+.ps-total{display:inline-flex;gap:6px;align-items:baseline;font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;padding:4px 10px 4px 0;margin-right:4px;border-right:1px solid var(--grid)}
+.ps-total .m{font-size:11px;font-weight:400}
+.fc{display:inline-flex;border-radius:6px;background:var(--panel);border-left:4px solid var(--c);font-variant-numeric:tabular-nums}
+.fc>a,.fc>.ti{display:inline-flex}
+.fc a,.fc{color:var(--text);text-decoration:none}
+.fc a{display:inline-flex;gap:6px;align-items:center;padding:4px 10px 4px 8px;border-radius:0 6px 6px 0}
+.fc a:hover{background:var(--grid)}
+.fc a:hover .sc{text-decoration:underline}
+.fc .sc{font-size:13px;font-weight:550}
+.ti{flex:none;display:block}
+.ps-keys{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;color:var(--text2)}
+.ps-keys .lg{display:inline-flex;gap:5px;align-items:center}
+#chart .series{cursor:pointer;transition:opacity .12s}
+#chart .hitline{pointer-events:stroke}
+#chart.hl .series{opacity:.2}
+#chart.hl .series.on{opacity:1}
+#chart .series.on .vis{stroke-width:3.5}
+.lineLegend{display:flex;flex-wrap:wrap;gap:2px 4px;margin:8px 0 4px}
+.li{border:1px solid transparent;background:none;color:var(--text);font:inherit;font-size:12.5px;padding:3px 9px 3px 7px;border-radius:999px;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.li:hover{background:var(--panel)}
+.li .rk{color:var(--text2);font-variant-numeric:tabular-nums}
+.li[aria-pressed=true]{border-color:var(--text);font-weight:600}
+.lineLegend.hl .li:not(.on){opacity:.4}
+#rows tr.on{background:var(--panel)}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 4px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:14px}
+th,td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--grid)}
+th{color:var(--text2);font-weight:550;font-size:12px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--panel)}
+.x{border:0;background:transparent;color:var(--text2);cursor:pointer;font-size:15px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1>UK XC League 2026 — standings through the season</h1>
+  <p class="sub" id="sub">Rank or league score for each pilot, day by day.</p>
+  <div class="err" id="err" hidden></div>
+
+  <div class="controls">
+    <div class="ctl"><span class="lbl">Show</span>
+      <div class="seg" id="mode">
+        <button data-v="top">Top N</button><button data-v="pick">Chosen pilots</button><button data-v="around">Around a pilot</button><button data-v="club">Club</button>
+      </div>
+    </div>
+    <div class="ctl" data-for="top club"><label for="n">How many</label><input id="n" type="number" min="1" max="100" value="10"></div>
+    <div class="ctl" data-for="club"><label for="club">Club</label><select id="club"></select></div>
+    <div class="ctl" data-for="pick around"><label for="search">Pilot</label><input id="search" class="search" list="names" placeholder="Type a name…" autocomplete="off"></div>
+    <div class="ctl" data-for="around"><label for="k">Places either side</label><input id="k" type="number" min="1" max="30" value="4"></div>
+    <div class="ctl"><label for="at">Ranked at <strong id="atLbl"></strong></label><input id="at" type="range" min="0" max="0"></div>
+  </div>
+  <div class="controls">
+    <div class="ctl"><span class="lbl">Chart</span>
+      <div class="seg" id="chartType"><button data-v="line">Line</button><button data-v="bar">Flights</button></div>
+    </div>
+    <div class="ctl" data-chart="line"><span class="lbl">Plot</span>
+      <div class="seg" id="metric"><button data-v="rank">Rank</button><button data-v="score">Score</button></div>
+    </div>
+    <div class="ctl" data-chart="bar"><label for="barPilot">Pilot</label><select id="barPilot"></select></div>
+    <div class="ctl" data-chart="bar"><span class="lbl">Time scale</span>
+      <div class="seg" id="barScale"><button data-v="compact" title="Equal slot for each flying day; gaps between flights shortened">Compact</button><button data-v="calendar" title="True dates">Calendar</button></div>
+    </div>
+    <div class="ctl"><span class="lbl">Period</span>
+      <div class="row">
+        <input id="from" type="date" aria-label="From date"><span class="lbl">to</span><input id="to" type="date" aria-label="To date">
+        <button class="btn" id="resetRange" title="Fit to the flights shown">Reset</button>
+      </div>
+    </div>
+  </div>
+  <datalist id="names"></datalist>
+  <div class="chips" id="chips"></div>
+
+  <div id="barLegend" class="legend" hidden></div>
+  <div id="chartWrap"><div id="chart"></div><div id="tip"></div></div>
+  <div id="lineLegend" class="lineLegend" data-chart="line"></div>
+  <p class="hint" id="hint"></p>
+  <p class="hint" id="source" hidden></p>
+
+  <table>
+    <thead><tr><th>Pilot</th><th>Club</th><th>Glider</th><th class="num" id="thRank">Rank</th><th class="num">Score</th><th class="num">Flights</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const DAY = 864e5;
+const HUES = 8;
+const DASHES = ["", "7 4", "2 3"]; // lines 9–16 are dashed and 17–24 dotted, so no two lines look the same
+const parseD = s => new Date(s + "T00:00:00Z");
+const isoD = d => d.toISOString().slice(0, 10);
+const fmtD = d => d.toLocaleDateString("en-GB", {day:"numeric", month:"short", year:"numeric", timeZone:"UTC"});
+const fmtS = v => (Math.round(v * 10) / 10).toLocaleString("en-GB", {minimumFractionDigits:1, maximumFractionDigits:1});
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- model: cumulative best-N score and rank for every pilot, every day ---------- */
+function buildModel(data){
+  const bestN = data.bestN || 6;
+  const start = parseD(data.start), end = parseD(data.end);
+  const D = Math.round((end - start) / DAY) + 1;
+  const dates = Array.from({length: D}, (_, i) => new Date(start.getTime() + i * DAY));
+  const pilots = data.pilots, P = pilots.length;
+  const idx = new Map(pilots.map((p, i) => [p.id, i]));
+  const byP = pilots.map(() => []);
+  let firstDay = D - 1, lastDay = 0;
+  for (const f of data.flights){
+    const i = idx.get(f.p); if (i == null) continue;
+    const d = Math.round((parseD(f.d) - start) / DAY); if (d < 0 || d >= D) continue;
+    byP[i].push({...f, day: d, s: +f.s}); firstDay = Math.min(firstDay, d); lastDay = Math.max(lastDay, d);
+  }
+  const score = [], nf = [];
+  byP.forEach(fl => {
+    fl.sort((a, b) => a.day - b.day);
+    const sc = new Float32Array(D), n = new Uint16Array(D);
+    let top = [], k = 0, cur = 0, cnt = 0;
+    for (let d = 0; d < D; d++){
+      let changed = false;
+      while (k < fl.length && fl[k].day === d){ top.push(fl[k].s); cnt++; k++; changed = true; }
+      if (changed){ top.sort((a, b) => b - a); if (top.length > bestN) top.length = bestN; cur = top.reduce((a, b) => a + b, 0); }
+      sc[d] = cur; n[d] = cnt;
+    }
+    score.push(sc); nf.push(n);
+  });
+  const rank = pilots.map(() => new Uint16Array(D)); // 0 = not yet ranked
+  const order = [...Array(P).keys()];
+  for (let d = 0; d < D; d++){
+    order.sort((a, b) => score[b][d] - score[a][d]);
+    let r = 0;
+    for (let j = 0; j < P; j++){
+      const i = order[j], s = score[i][d];
+      if (s <= 0) break;
+      if (j === 0 || s < score[order[j - 1]][d]) r = j + 1; // ties share a rank
+      rank[i][d] = r;
+    }
+  }
+  // "Surname, First name" labels (club added for the two pilots who share a name), sorted by surname then first name
+  pilots.forEach(p => {
+    const club = / \(.+\)$/.test(p.name) ? " (" + p.club + ")" : "";
+    p.label = p.last ? `${p.last}, ${p.first}${club}` : p.name;
+  });
+  const bySurname = pilots.map((_, i) => i).sort((a, b) =>
+    (pilots[a].last || pilots[a].name).localeCompare(pilots[b].last || pilots[b].name, "en-GB") ||
+    (pilots[a].first || "").localeCompare(pilots[b].first || "", "en-GB") || pilots[a].club.localeCompare(pilots[b].club));
+  const byName = new Map();
+  pilots.forEach((p, i) => { byName.set(p.name.toLowerCase(), i); byName.set(p.label.toLowerCase(), i); });
+  const clubs = [...new Set(pilots.map(p => p.club).filter(Boolean))].sort();
+  return {pilots, dates, D, score, rank, nf, byP, bestN, byName, bySurname, clubs, firstDay, lastDay, season: data.season,
+          types: data.types || [], gliders: data.gliders || [], sites: data.sites || [], flightUrl: data.flightUrl || ""};
+}
+// The flights counting towards a pilot's score on a given day, best first (matches the league's Flight 1–6)
+function countedFlights(i, d){
+  return M.byP[i].filter(f => f.day <= d).sort((a, b) => b.s - a.s).slice(0, M.bestN);
+}
+
+/* ---------- state & selection ---------- */
+let M;
+const S = {mode:"top", chart:"line", metric:"rank", n:10, at:0, k:4, club:"", picks:[], focus:null, hl:null, pin:null, from:0, to:0, barPilot:null, rangeKey:null, barScale:"compact"};
+const slotOf = new Map(); // pilot index -> style slot; a pilot keeps its colour while it stays on the chart
+
+function selection(){
+  const {rank, pilots} = M, at = S.at;
+  const rankedAt = filter => pilots.map((_, i) => i).filter(i => rank[i][at] > 0 && filter(i)).sort((a, b) => rank[a][at] - rank[b][at]);
+  switch (S.mode){
+    case "top": return rankedAt(() => true).slice(0, S.n);
+    case "pick": return S.picks.slice();
+    case "club": return rankedAt(i => pilots[i].club === S.club).slice(0, S.n);
+    case "around": {
+      if (S.focus == null) return [];
+      const r = rank[S.focus][at];
+      if (!r) return [S.focus];
+      return rankedAt(i => Math.abs(rank[i][at] - r) <= S.k);
+    }
+  }
+  return [];
+}
+function assignSlots(sel){
+  const keep = new Set(sel);
+  for (const i of [...slotOf.keys()]) if (!keep.has(i)) slotOf.delete(i);
+  const used = new Set(slotOf.values());
+  for (const i of sel){
+    if (slotOf.has(i)) continue;
+    let s = 0; while (used.has(s)) s++;
+    slotOf.set(i, s); used.add(s);
+  }
+}
+const colour = i => `var(--s${(slotOf.get(i) ?? 0) % HUES + 1})`;
+const dash = i => DASHES[Math.floor((slotOf.get(i) ?? 0) / HUES) % DASHES.length];
+const keySvg = i => `<svg class="key" width="18" height="6" aria-hidden="true"><line x1="1" x2="17" y1="3" y2="3" stroke="${colour(i)}" stroke-width="2.5" stroke-dasharray="${dash(i)}" stroke-linecap="round"/></svg>`;
+
+/* ---------- shared bits ---------- */
+function niceTicks(lo, hi, count){
+  const span = hi - lo || 1, raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 5, 10].map(m => m * mag).find(s => span / s <= count) || 10 * mag;
+  const t = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(Math.round(v * 1000) / 1000);
+  return t;
+}
+let geom = null;
+// x-axis shared by the line and bar charts: month ticks, or weekly ticks when zoomed in
+function timeAxis(d0, d1, x, m, W, H, grid){
+  let g = "", lastLabel = -Infinity;
+  const short = d1 - d0 < 75;
+  for (let d = d0; d <= d1; d++){
+    const dt = M.dates[d];
+    if (!(short ? dt.getUTCDay() === 1 : dt.getUTCDate() === 1)) continue;
+    const label = short ? dt.toLocaleDateString("en-GB", {day:"numeric", month:"short", timeZone:"UTC"})
+                        : dt.toLocaleDateString("en-GB", {month:"short", timeZone:"UTC"}) + (dt.getUTCMonth() === 0 ? " " + dt.getUTCFullYear() : "");
+    const X = x(d);
+    if (grid) g += `<line x1="${X}" x2="${X}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/>`;
+    g += `<line x1="${X}" x2="${X}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--axis)"/>`;
+    if (X - lastLabel >= 36){ g += `<text x="${X}" y="${H - m.b + 17}" text-anchor="middle">${label}</text>`; lastLabel = X; }
+  }
+  return g + `<line x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}" stroke="var(--axis)"/>`;
+}
+
+function render(){
+  const sel = selection();
+  assignSlots(sel);
+  $("#tip").style.display = "none";
+  const shown = S.chart === "bar" ? [barPilot(sel)].filter(i => i != null) : sel;
+  const key = S.chart + ":" + shown.slice().sort((a, b) => a - b).join(",");
+  if (key !== S.rangeKey){ S.rangeKey = key; fitRange(shown); }
+  if (S.chart === "bar") renderBars(sel); else renderLines(sel);
+  renderTable(sel);
+  renderChips();
+  applyHighlight(); // re-apply to the freshly drawn table
+  $("#hint").textContent = hintText();
+}
+
+/* ---------- line chart ---------- */
+function renderLines(sel){
+  const isRank = S.metric === "rank";
+  const val = (i, d) => isRank ? (M.rank[i][d] || null) : M.score[i][d];
+
+  const wrap = $("#chart"), W = Math.max(320, wrap.clientWidth);
+  const H = Math.round(Math.max(300, Math.min(540, W * 0.52)));
+  const m = {t:26, r:16, b:28, l:48};
+  const d0 = S.from, d1 = Math.max(S.to, S.from + 1);
+  const x = d => m.l + (d - d0) / (d1 - d0) * (W - m.l - m.r);
+
+  let ymin, ymax;
+  if (isRank){
+    let worst = 1, worstAt = 1;
+    for (const i of sel){
+      for (let d = d0; d <= d1; d++) worst = Math.max(worst, M.rank[i][d]);
+      worstAt = Math.max(worstAt, M.rank[i][Math.min(Math.max(S.at, d0), d1)] || 0);
+    }
+    // Focus the axis on where these pilots sit; much lower early-season ranks run off the bottom (clipped)
+    ymin = 1; ymax = Math.max(5, Math.min(worst, Math.ceil(worstAt * 2.5) + 5));
+  } else {
+    let best = 0;
+    for (const i of sel) for (let d = d0; d <= d1; d++) best = Math.max(best, M.score[i][d]);
+    ymin = 0; ymax = Math.max(best * 1.05, 10);
+  }
+  const ih = H - m.t - m.b;
+  const y = v => isRank ? m.t + (v - ymin) / (ymax - ymin) * ih : m.t + ih - (v - ymin) / (ymax - ymin) * ih;
+  geom = {kind:"line", x, y, d0, d1, m, W, H, val, sel, isRank};
+
+  let g = `<defs><clipPath id="plot"><rect x="${m.l}" y="${m.t - 3}" width="${W - m.l - m.r}" height="${ih + 6}"/></clipPath></defs>`;
+  const yt = niceTicks(ymin, ymax, 6); if (isRank && yt[0] !== 1) yt.unshift(1);
+  for (const v of yt){
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>`;
+    g += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${isRank ? v : v.toLocaleString("en-GB")}</text>`;
+  }
+  g += timeAxis(d0, d1, x, m, W, H);
+  g += `<text x="${m.l - 8}" y="${m.t - 12}" text-anchor="end" style="font-size:10px">${isRank ? "rank" : "score"}</text>`;
+  if (S.at >= d0 && S.at <= d1)
+    g += `<line x1="${x(S.at)}" x2="${x(S.at)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+
+  const path = i => {
+    let p = "", pen = false;
+    for (let d = d0; d <= d1; d++){
+      const v = val(i, d);
+      if (v == null){ pen = false; continue; }
+      p += (pen ? "L" : "M") + x(d).toFixed(1) + " " + y(v).toFixed(1); pen = true;
+    }
+    return p;
+  };
+  // crosshair target first, then the lines on top so they can be hovered and clicked
+  g += `<rect id="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${ih}" fill="transparent" style="cursor:crosshair"/>`;
+  g += `<g id="series" clip-path="url(#plot)">`;
+  for (const i of sel.slice().reverse()) // leaders drawn last, on top
+    g += `<g class="series" data-i="${i}"><path class="vis" d="${path(i)}" fill="none" stroke="${colour(i)}" stroke-dasharray="${dash(i)}" stroke-width="2" stroke-linejoin="round"/><path class="hitline" d="${path(i)}" fill="none" stroke="transparent" stroke-width="12"/></g>`;
+  g += `</g><g id="hlLabel" pointer-events="none"></g>`;
+  g += `<line id="xh" y1="${m.t}" y2="${H - m.b}" stroke="var(--text2)" stroke-width="1" visibility="hidden" pointer-events="none"/>`;
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${isRank ? "Rank" : "Score"} over time for ${sel.length} pilots">${g}</svg>`;
+
+  const svg = $("#chart svg");
+  svg.addEventListener("pointermove", onLineMove);
+  svg.addEventListener("pointerleave", () => { $("#tip").style.display = "none"; $("#xh").setAttribute("visibility", "hidden"); });
+  $("#hit").addEventListener("click", e => { S.at = Math.min(M.lastDay, Math.max(M.firstDay, dayAt(e))); $("#at").value = S.at; update(); });
+  svg.querySelectorAll(".series").forEach(el => {
+    const i = +el.dataset.i;
+    el.addEventListener("pointerenter", () => setHl(i));
+    el.addEventListener("pointerleave", () => setHl(null));
+    el.addEventListener("click", () => togglePin(i));
+  });
+  renderLineLegend(sel);
+  applyHighlight();
+}
+
+/* ---------- picking out one pilot: hover (temporary) or click (pinned) ---------- */
+function focusPilot(){
+  const sel = geom && geom.kind === "line" ? geom.sel : [];
+  for (const i of [S.hl, S.pin]) if (i != null && sel.includes(i)) return i;
+  return S.mode === "around" && sel.includes(S.focus) ? S.focus : null;
+}
+function setHl(i){ if (S.hl !== i){ S.hl = i; applyHighlight(); } }
+function togglePin(i){ S.pin = S.pin === i ? null : i; applyHighlight(); }
+function applyHighlight(){
+  if (!geom || geom.kind !== "line") return;
+  const f = focusPilot(), chart = $("#chart"), legend = $("#lineLegend");
+  chart.classList.toggle("hl", f != null); legend.classList.toggle("hl", f != null);
+  chart.querySelectorAll(".series").forEach(el => {
+    const on = +el.dataset.i === f;
+    el.classList.toggle("on", on);
+    if (on) el.parentNode.appendChild(el); // bring to the front
+  });
+  legend.querySelectorAll(".li").forEach(el => {
+    el.classList.toggle("on", +el.dataset.i === f);
+    el.setAttribute("aria-pressed", +el.dataset.i === S.pin);
+  });
+  document.querySelectorAll("#rows tr[data-i]").forEach(tr => tr.classList.toggle("on", +tr.dataset.i === f));
+  // name label at the end of the picked-out line
+  const lab = $("#hlLabel"); lab.innerHTML = "";
+  if (f == null) return;
+  const {x, y, val, d0, d1, m, W, H} = geom;
+  let d = d1; while (d > d0 && val(f, d) == null) d--;
+  const v = val(f, d); if (v == null) return;
+  const X = Math.min(x(d), W - m.r) - 4, Y0 = Math.max(m.t, Math.min(H - m.b, y(v)));
+  const Y = Y0 - 9 < m.t + 4 ? Y0 + 18 : Y0 - 9;
+  const rk = M.rank[f][S.at];
+  lab.innerHTML = `<text x="${X}" y="${Y}" text-anchor="end" paint-order="stroke" stroke="var(--surface)" stroke-width="5" stroke-linejoin="round" style="fill:var(--text);font-size:13px;font-weight:650">${esc(M.pilots[f].name)}${rk ? ` <tspan style="font-weight:400;fill:var(--text2)">#${rk}</tspan>` : ""}</text>`;
+}
+function renderLineLegend(sel){
+  const at = S.at;
+  const order = sel.slice().sort((a, b) => (M.rank[a][at] || 1e9) - (M.rank[b][at] || 1e9));
+  $("#lineLegend").innerHTML = order.map(i => {
+    const r = M.rank[i][at];
+    return `<button class="li" data-i="${i}" aria-pressed="false" title="Click to pick out ${esc(M.pilots[i].name)}; click again to release">${keySvg(i)}<span>${r ? `<span class="rk">#${r}</span> ` : ""}${esc(M.pilots[i].name)}</span></button>`;
+  }).join("");
+}
+function dayAt(e){
+  const r = $("#chart svg").getBoundingClientRect(), {m, W, d0, d1} = geom;
+  const px = (e.clientX - r.left) * (W / r.width);
+  return Math.max(d0, Math.min(d1, Math.round(d0 + (px - m.l) / (W - m.l - m.r) * (d1 - d0))));
+}
+function onLineMove(e){
+  const r = $("#chart svg").getBoundingClientRect(), {x, val, sel, isRank, m, W, H} = geom;
+  const px = (e.clientX - r.left) * (W / r.width), py = (e.clientY - r.top) * (H / r.height);
+  if (px < m.l || px > W - m.r || py < m.t || py > H - m.b){ $("#tip").style.display = "none"; $("#xh").setAttribute("visibility", "hidden"); return; }
+  const d = dayAt(e), f = focusPilot();
+  const xh = $("#xh"); xh.setAttribute("x1", x(d)); xh.setAttribute("x2", x(d)); xh.setAttribute("visibility", "visible");
+  const rows = sel.map(i => ({i, v: val(i, d)})).filter(r => r.v != null).sort((a, b) => isRank ? a.v - b.v : b.v - a.v);
+  const max = 14;
+  let h = `<div class="d">${fmtD(M.dates[d])}</div>`;
+  for (const r of rows.slice(0, max))
+    h += `<div class="r"${r.i === f ? ' style="font-weight:700"' : ""}>${keySvg(r.i)}<span class="n">${esc(M.pilots[r.i].name)}</span><span class="v">${isRank ? "#" + r.v : fmtS(r.v)}</span></div>`;
+  if (rows.length > max) h += `<div class="r m">+ ${rows.length - max} more</div>`;
+  if (!rows.length) h += `<div class="r m">No ranked pilots yet</div>`;
+  showTip(h, e);
+}
+
+/* ---------- stacked bars: one pilot, a bar on each flying day showing the flights counting at that point ---------- */
+function barPilot(sel){
+  if (S.barPilot != null) return S.barPilot;
+  const byRank = sel.slice().sort((a, b) => (M.rank[a][S.at] || 1e9) - (M.rank[b][S.at] || 1e9));
+  S.barPilot = S.mode === "around" && sel.includes(S.focus) ? S.focus : (byRank[0] ?? null);
+  return S.barPilot;
+}
+function renderBars(sel){
+  const wrap = $("#chart"), W = Math.max(320, wrap.clientWidth);
+  const i = barPilot(sel);
+  const bp = $("#barPilot"); // every pilot, "Surname, First name"
+  if (!bp.options.length) bp.innerHTML = M.bySurname.map(j => `<option value="${j}">${esc(M.pilots[j].label)}</option>`).join("");
+  if (i != null) bp.value = String(i);
+  geom = {kind:"bar"};
+  if (i == null){ wrap.innerHTML = `<p class="hint">No pilot selected.</p>`; $("#barLegend").innerHTML = ""; return; }
+
+  const fl = M.byP[i];
+  const finalBest = countedFlights(i, M.D - 1);           // the flights that end up counting, best first
+  const finalNo = new Map(finalBest.map((f, n) => [f, n])); // flight -> 0..5, the league's Flight 1–6
+  const days = [...new Set(fl.map(f => f.day))].sort((a, b) => a - b);
+  const bars = days.map(day => {
+    const counted = fl.filter(f => f.day <= day).sort((a, b) => b.s - a.s).slice(0, M.bestN);
+    return {day, total: counted.reduce((a, f) => a + f.s, 0),
+            stack: counted.slice().sort((a, b) => a.day - b.day || b.s - a.s), // oldest at the bottom
+            missed: fl.filter(f => f.day === day && !counted.includes(f))};    // flown today but not counting
+  });
+
+  const H = Math.round(Math.max(300, Math.min(540, W * 0.52)));
+  const m = {t:26, r:16, b:28, l:56};
+  const d0 = S.from, d1 = Math.max(S.to, S.from + 1);
+  const pw = W - m.l - m.r, ih = H - m.t - m.b;
+  const inView = bars.filter(b => b.day >= d0 && b.day <= d1);
+  let x, edge, bw;
+  if (S.barScale === "calendar"){
+    // True dates: every bar the same width, as wide as the closest pair of flying days allows
+    const dayPx = pw / (d1 - d0);
+    x = d => m.l + (d - d0) * dayPx; edge = x;
+    let minGap = Infinity;
+    for (let k = 1; k < inView.length; k++) minGap = Math.min(minGap, inView[k].day - inView[k - 1].day);
+    bw = Math.max(2, Math.min(28, minGap * dayPx - 2, 0.7 * pw / Math.max(1, inView.length)));
+  } else {
+    // Compact: each flying day gets one equal slot; a run of g days without flights takes 0.5·√g slots
+    const fly = new Set(inView.map(b => b.day)), n = d1 - d0 + 1, wt = new Float64Array(n);
+    for (let d = d0; d <= d1;){
+      if (fly.has(d)){ wt[d - d0] = 1; d++; continue; }
+      let e = d; while (e <= d1 && !fly.has(e)) e++;
+      const g = e - d; for (let k = d; k < e; k++) wt[k - d0] = 0.5 * Math.sqrt(g) / g;
+      d = e;
+    }
+    const cum = new Float64Array(n + 1); for (let k = 0; k < n; k++) cum[k + 1] = cum[k] + wt[k];
+    const unit = pw / cum[n], at = d => Math.max(0, Math.min(n - 1, d - d0));
+    x = d => m.l + (cum[at(d)] + wt[at(d)] / 2) * unit;          // centre of a day's slot
+    edge = d => m.l + cum[Math.max(0, Math.min(n, d - d0))] * unit; // start of a day (month boundaries)
+    bw = Math.max(3, Math.min(28, unit * 0.75));
+  }
+  bars.forEach(b => b.w = bw);
+  const ymax = Math.max(10, ...bars.map(b => b.total)) * 1.06;
+  const y = v => m.t + ih - v / ymax * ih;
+  const segs = [];
+
+  let g = `<defs><clipPath id="plot"><rect x="${m.l - 30}" y="0" width="${pw + 60}" height="${H}"/></clipPath></defs>`;
+  for (const v of niceTicks(0, ymax, 6)){
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>`;
+    g += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toLocaleString("en-GB")}</text>`;
+  }
+  g += timeAxis(d0, d1, edge, m, W, H, S.barScale !== "calendar");
+  g += `<text x="${m.l - 8}" y="${m.t - 12}" text-anchor="end" style="font-size:10px">score</text>`;
+  if (S.at >= d0 && S.at <= d1)
+    g += `<line x1="${x(S.at)}" x2="${x(S.at)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+  g += `<g clip-path="url(#plot)">`;
+  for (const b of bars){
+    if (b.day < d0 - 1 || b.day > d1 + 1) continue;
+    const bw = b.w, X = x(b.day) - bw / 2;
+    let base = 0;
+    for (const f of b.stack){
+      const top = y(base + f.s), bottom = y(base), h = Math.max(1, bottom - top - (bottom - top > 3 ? 1 : 0)); // 1px gap between segments
+      const n = finalNo.get(f), isNew = f.day === b.day;
+      const fill = n == null ? "var(--neutral)" : `var(--s${n + 1})`;
+      segs.push({f, bar: b, isNew});
+      g += link(f, `<rect x="${X}" y="${top}" width="${bw}" height="${h}" fill="${fill}" data-seg="${segs.length - 1}"/>`, i);
+      base += f.s;
+    }
+    let cy = y(b.total) - 7;
+    for (const f of b.missed){ // a flight that didn't count even on the day it was flown
+      segs.push({f, bar: b, missed: true});
+      g += link(f, `<circle cx="${x(b.day)}" cy="${cy}" r="${Math.min(4, Math.max(2.5, bw / 2))}" fill="var(--surface)" stroke="var(--muted)" stroke-width="1.5" data-seg="${segs.length - 1}"/>`, i);
+      cy -= 9;
+    }
+  }
+  // the pilot's league total, day by day: it steps up wherever a bar adds points
+  const lo = Math.max(0, d0), hi = Math.min(M.D - 1, d1);
+  let tl = `M${x(lo).toFixed(1)} ${y(M.score[i][lo]).toFixed(1)}`;
+  for (const b of bars) if (b.day > lo && b.day <= hi) // flat, then up at the bar's left edge and along its top
+    tl += `H${(x(b.day) - b.w / 2).toFixed(1)}V${y(b.total).toFixed(1)}`;
+  tl += `H${x(hi).toFixed(1)}`;
+  g += `<path d="${tl}" fill="none" stroke="var(--text)" stroke-width="1.5" stroke-linejoin="round" opacity="0.8" pointer-events="none"/>`;
+  g += `</g>`;
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Counted flights over time for ${esc(M.pilots[i].name)}">${g}</svg>`;
+
+  // summary: like the league table, the pilot's final total and best flights (score + flight-type icon)
+  const p = M.pilots[i], rk = M.rank[i][S.at];
+  const sq = c => `<svg class="key" width="12" height="12" aria-hidden="true"><rect width="12" height="12" rx="2" fill="${c}"/></svg>`;
+  const cells = finalBest.map((f, n) => {
+    const type = M.types[f.t] || "", url = f.f && M.flightUrl ? M.flightUrl.replace("{f}", f.f) : null;
+    const tip = `${type} · ${fmtD(M.dates[f.day])}${M.sites[f.x] ? " · " + M.sites[f.x] : ""}`;
+    const inner = `${typeIcon(type)}<span class="sc">${fmtS(f.s)}</span>`;
+    return `<span class="fc" style="--c:var(--s${n + 1})" title="${esc(tip)}">${url ? `<a href="${url}" target="_blank" rel="noopener" aria-label="${esc(fmtS(f.s) + " points, " + tip)}">${inner}</a>` : inner}</span>`;
+  }).join("");
+  const usedTypes = [...new Set(finalBest.map(f => typeKind(M.types[f.t] || "")))]; // key covers only the icons shown
+  $("#barLegend").innerHTML =
+    `<div class="ps-head"><strong>${esc(p.name)}</strong><span class="m">${[p.club, p.wing, rk ? "#" + rk + " on " + fmtD(M.dates[S.at]) : ""].filter(Boolean).map(esc).join(" · ")}</span></div>
+     <div class="ps-row"><span class="ps-total"><span class="m">Total</span> ${fmtS(finalBest.reduce((a, f) => a + f.s, 0))}</span>${cells}</div>
+     <div class="ps-keys">
+       <span class="lg">${sq("var(--neutral)")} counted for a while, later replaced</span>
+       <span class="lg"><svg class="key" width="18" height="6" aria-hidden="true"><line x1="1" x2="17" y1="3" y2="3" stroke="var(--text)" stroke-width="2"/></svg> total score</span>
+       <span class="lg"><svg class="key" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg> flown but never counted</span>
+       ${TYPE_KINDS.filter(k => usedTypes.includes(k.id)).map(k => `<span class="lg">${ico(k.glyph)} ${k.label}</span>`).join("")}
+       ${finalBest.some(f => /declared/i.test(M.types[f.t] || "")) ? `<span class="lg">${ico(TYPE_KINDS.find(k => k.id === "tp").glyph, false, true)} yellow symbol: declared</span>` : ""}
+       ${finalBest.some(f => /tow-launch/i.test(M.types[f.t] || "")) ? `<span class="lg">${ico(TYPE_KINDS.find(k => k.id === "tp").glyph, true)} green tile: tow launch</span>` : ""}
+     </div>`;
+
+  wrap.querySelectorAll("[data-seg]").forEach(el => {
+    el.addEventListener("pointermove", e => {
+      const sg = segs[+el.dataset.seg], f = sg.f, n = finalNo.get(f);
+      const status = sg.missed ? "Didn't count: lower than the best " + M.bestN + " at the time"
+        : n != null ? `Counts in the final total as flight ${n + 1}` : "Counted for a while, later replaced by a better flight";
+      showTip(`<div class="d">${fmtD(M.dates[f.day])} — ${fmtS(f.s)} pts</div>
+        <div class="m">${esc(M.sites[f.x] || "")}${M.types[f.t] ? " · " + esc(M.types[f.t]) : ""}</div>
+        <div class="m">${esc(M.gliders[f.g] || "")}</div>
+        <div style="margin-top:4px">${status}${sg.isNew ? " (new on this date)" : ""}</div>
+        <div class="m">Total on ${fmtD(M.dates[sg.bar.day])}: ${fmtS(sg.bar.total)}</div>
+        <div class="m" style="margin-top:4px">Click to open the flight on xcleague.com</div>`, e);
+    });
+    el.addEventListener("pointerleave", () => { $("#tip").style.display = "none"; });
+  });
+}
+// Flight-type icons: the symbol shows the shape of the flight, a yellow symbol means declared,
+// and a green tile means tow-launched (blue tile and white symbol otherwise)
+const ico = (body, tow, declared) => {
+  const fg = declared ? "var(--declared)" : "#fff";
+  return `<svg class="ti" width="18" height="17" viewBox="0 0 18 17" aria-hidden="true"><rect width="18" height="17" rx="3.5" fill="${tow ? "var(--tow)" : "var(--tile)"}"/><g transform="translate(1.5 2)" fill="none" stroke="${fg}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${body.replace(/currentColor/g, fg)}</g></svg>`;
+};
+const TYPE_KINDS = [
+  {id:"fai",     test:/fai triangle/i,   label:"FAI triangle",   glyph:'<path d="M7.5 1.5 13.5 11.5H1.5Z" fill="currentColor"/>'},
+  {id:"flat",    test:/flat triangle/i,  label:"flat triangle",  glyph:'<path d="M5 3 13.5 11.5H1.5Z"/>'},
+  {id:"oar",     test:/out and return/i, label:"out & return",   glyph:'<path d="M1.5 6.5H13.5"/><path d="M4.5 3.5 1.5 6.5 4.5 9.5"/><path d="M10.5 3.5 13.5 6.5 10.5 9.5"/>'},
+  {id:"goal",    test:/goal/i,           label:"flight to goal", glyph:'<path d="M1.5 6.5H12.5"/><path d="M9.5 3.5 12.5 6.5 9.5 9.5"/>'},
+  {id:"coastal", test:/coastal/i,        label:"coastal turnpoint", glyph:'<path d="M2.5 7.5V2.5H11"/><path d="M8.5 0 11 2.5 8.5 5"/><path d="M1.5 11.5q1.5-2 3 0t3 0 3 0 3 0"/>'},
+  {id:"open",    test:/open distance/i,  label:"open distance",  glyph:'<path d="M1.5 6.5H9"/><path d="M6 3.5 9 6.5 6 9.5"/><path d="M10 3.5 13 6.5 10 9.5"/>'},
+  {id:"tp",      test:/./,               label:"turnpoint",      glyph:'<path d="M2.5 11.5V3.5H12.5"/><path d="M9.5 0.5 12.5 3.5 9.5 6.5"/>'},
+];
+const kindOf = t => TYPE_KINDS.find(k => k.test.test(t));
+const typeKind = t => kindOf(t).id;
+const typeIcon = t => ico(kindOf(t).glyph, /tow-launch/i.test(t), /declared/i.test(t));
+
+function link(f, inner, i, label){
+  const url = f.f && M.flightUrl ? M.flightUrl.replace("{f}", f.f) : null;
+  if (!url) return label ? label + " " + inner : inner;
+  return `<a href="${url}" target="_blank" rel="noopener" aria-label="${esc(M.pilots[i].name)}, ${fmtS(f.s)} points, ${fmtD(M.dates[f.day])}">${label ? label + ": " : ""}${inner}</a>`;
+}
+
+function showTip(html, e){
+  const tip = $("#tip"); tip.innerHTML = html; tip.style.display = "block";
+  const wr = $("#chartWrap").getBoundingClientRect();
+  let left = e.clientX - wr.left + 14; if (left + tip.offsetWidth > wr.width) left = e.clientX - wr.left - tip.offsetWidth - 14;
+  tip.style.left = Math.max(0, left) + "px"; tip.style.top = Math.max(0, e.clientY - wr.top - 20) + "px";
+}
+
+/* ---------- table, chips, hint ---------- */
+function renderTable(sel){
+  const at = S.at;
+  $("#thRank").textContent = "Rank on " + fmtD(M.dates[at]);
+  const rows = sel.slice().sort((a, b) => (M.rank[a][at] || 1e9) - (M.rank[b][at] || 1e9));
+  $("#rows").innerHTML = rows.map(i => {
+    const p = M.pilots[i], r = M.rank[i][at];
+    const rm = S.mode === "pick" ? `<button class="x" data-rm="${i}" aria-label="Remove ${esc(p.name)}">×</button>` : "";
+    return `<tr data-i="${i}"><td>${keySvg(i)} ${esc(p.name)}</td><td>${esc(p.club || "")}</td><td>${esc(p.wing || "")}</td><td class="num">${r || "–"}</td><td class="num">${fmtS(M.score[i][at])}</td><td class="num">${M.nf[i][at]}</td><td>${rm}</td></tr>`;
+  }).join("") || `<tr><td colspan="7" style="color:var(--muted)">No pilots selected.</td></tr>`;
+}
+function renderChips(){
+  const c = $("#chips");
+  if (S.mode !== "pick"){ c.innerHTML = ""; return; }
+  c.innerHTML = S.picks.map(i => `<span class="chip">${keySvg(i)}${esc(M.pilots[i].name)}<button data-rm="${i}" aria-label="Remove">×</button></span>`).join("");
+}
+function hintText(){
+  if (S.chart === "bar") return `A bar on each day the pilot flew, stacking the flights counting towards their score that day (oldest at the bottom); the line is their total score. In Compact time scale each flying day gets an equal slot and the gaps between flights are shortened (faint lines mark month starts). Colours are the flights in the final best ${M.bestN}; the day's new flight is the top segment. Click a segment to open that flight on xcleague.com. Choose another pilot in the Pilot box or by clicking a table row.`;
+  return `League score = best ${M.bestN} flights to date. Hover a line, legend entry or table row to pick out a pilot; click to keep it picked out (click again or press Esc to release). Click the chart to move the ranking date.` +
+         (slotOf.size > HUES ? " With more than 8 pilots, lines 9–16 are dashed and 17–24 dotted." : "");
+}
+
+/* ---------- wiring ---------- */
+// Period: first to last flight of the pilots shown (2 days' margin, at least 3 weeks); the whole league if none
+function fitRange(ids){
+  let a = M.firstDay, b = M.lastDay;
+  const days = (ids || []).flatMap(i => M.byP[i].map(f => f.day));
+  if (days.length){
+    a = Math.min(...days) - 2; b = Math.max(...days) + 2;
+    if (b - a < 21){ const mid = Math.round((a + b) / 2); a = mid - 10; b = mid + 11; }
+  }
+  S.from = Math.max(0, a); S.to = Math.min(M.D - 1, b);
+  syncRangeInputs();
+}
+function syncRangeInputs(){ $("#from").value = isoD(M.dates[S.from]); $("#to").value = isoD(M.dates[S.to]); }
+function update(){
+  $("#atLbl").textContent = fmtD(M.dates[S.at]);
+  for (const [id, key] of [["#mode", "mode"], ["#metric", "metric"], ["#chartType", "chart"], ["#barScale", "barScale"]])
+    document.querySelectorAll(id + " button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S[key]));
+  document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(S.mode));
+  document.querySelectorAll("[data-chart]").forEach(el => el.hidden = el.dataset.chart !== S.chart);
+  $("#barLegend").hidden = S.chart !== "bar";
+  $("#search").placeholder = S.mode === "pick" ? "Add a pilot…" : "Type a name…";
+  render();
+}
+function setupUI(){
+  $("#sub").textContent = `Rank or league score for each pilot, day by day through the ${M.season} season (${M.pilots.length} pilots).`;
+  $("#names").innerHTML = M.bySurname.map(i => `<option value="${esc(M.pilots[i].label)}">`).join("");
+  $("#club").innerHTML = M.clubs.map(c => `<option>${esc(c)}</option>`).join("");
+  S.club = M.clubs[0] || "";
+  const at = $("#at"); at.min = M.firstDay; at.max = M.lastDay; S.at = M.lastDay; at.value = S.at;
+  S.from = M.firstDay; S.to = M.lastDay;
+  for (const id of ["#from", "#to"]){ $(id).min = isoD(M.dates[0]); $(id).max = isoD(M.dates[M.D - 1]); }
+  syncRangeInputs();
+  const top = M.pilots.map((_, i) => i).filter(i => M.rank[i][S.at]).sort((a, b) => M.rank[a][S.at] - M.rank[b][S.at]);
+  S.picks = top.slice(0, 3); S.focus = top[Math.min(24, top.length - 1)];
+
+  const segClick = (id, key, after) => $(id).addEventListener("click", e => { const v = e.target.dataset.v; if (v){ S[key] = v; after && after(v); update(); } });
+  segClick("#mode", "mode", v => { S.hl = null; $("#search").value = v === "around" && S.focus != null ? M.pilots[S.focus].label : ""; });
+  segClick("#metric", "metric");
+  segClick("#chartType", "chart");
+  segClick("#barScale", "barScale");
+  $("#n").addEventListener("input", e => { const v = +e.target.value; if (v >= 1){ S.n = Math.min(100, v); update(); } });
+  $("#k").addEventListener("input", e => { const v = +e.target.value; if (v >= 1){ S.k = Math.min(30, v); update(); } });
+  $("#barPilot").addEventListener("change", e => { S.barPilot = +e.target.value; render(); });
+  $("#club").addEventListener("change", e => { S.club = e.target.value; update(); });
+  at.addEventListener("input", e => { S.at = +e.target.value; update(); });
+  const dayOf = v => Math.round((parseD(v) - M.dates[0]) / DAY);
+  $("#from").addEventListener("change", e => { if (!e.target.value) return; S.from = Math.max(0, Math.min(dayOf(e.target.value), S.to - 1)); syncRangeInputs(); update(); });
+  $("#to").addEventListener("change", e => { if (!e.target.value) return; S.to = Math.min(M.D - 1, Math.max(dayOf(e.target.value), S.from + 1)); syncRangeInputs(); update(); });
+  $("#resetRange").title = "Fit to the flights shown";
+  $("#resetRange").addEventListener("click", () => { S.rangeKey = null; update(); });
+  $("#search").addEventListener("change", e => {
+    const i = M.byName.get(e.target.value.trim().toLowerCase()); if (i == null) return;
+    if (S.mode === "pick"){ if (!S.picks.includes(i)) S.picks.push(i); e.target.value = ""; }
+    else S.focus = i;
+    update();
+  });
+  document.addEventListener("click", e => {
+    const rm = e.target.closest("[data-rm]");
+    if (rm){ const i = +rm.dataset.rm; S.picks = S.picks.filter(p => p !== i); update(); return; }
+    const tr = e.target.closest("#rows tr[data-i]");
+    if (tr && S.chart === "bar"){ S.barPilot = +tr.dataset.i; render(); }
+    else if (tr && S.chart === "line" && !e.target.closest("button")) togglePin(+tr.dataset.i);
+  });
+  $("#rows").addEventListener("mouseover", e => { if (S.chart !== "line") return; const tr = e.target.closest("tr[data-i]"); setHl(tr ? +tr.dataset.i : null); });
+  $("#rows").addEventListener("mouseleave", () => setHl(null));
+  const lg = $("#lineLegend");
+  lg.addEventListener("mouseover", e => { const b = e.target.closest(".li"); setHl(b ? +b.dataset.i : null); });
+  lg.addEventListener("mouseleave", () => setHl(null));
+  lg.addEventListener("click", e => { const b = e.target.closest(".li"); if (b) togglePin(+b.dataset.i); });
+  addEventListener("keydown", e => { if (e.key === "Escape" && S.pin != null){ S.pin = null; applyHighlight(); } });
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });
+}
+async function init(){
+  try {
+    const r = await fetch("league-2026.json");
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    M = buildModel(data);
+    if (data.source){ const el = $("#source"); el.textContent = "Data: " + data.source + ". Standings rebuilt from final, moderated flights, so they may differ slightly from the live table on a given day."; el.hidden = false; }
+  } catch (e) {
+    const el = $("#err"); el.hidden = false;
+    el.textContent = "Couldn't load league-2026.json (" + e.message + "). It must sit next to this page, and the page must be opened through a web server rather than as a local file.";
+    return;
+  }
+  setupUI(); update();
+}
+init();
+</script>
+</body>
+</html>
