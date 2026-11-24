@@ -615,7 +615,11 @@ function renderBars(sel){
     const inner = `${typeIcon(type)}<span class="sc">${fmtS(f.s)}</span>`;
     return `<span class="fc" style="--c:var(--s${n + 1})" title="${esc(tip)}">${url ? `<a href="${url}" target="_blank" rel="noopener" aria-label="${esc(fmtS(f.s) + " points, " + tip)}">${inner}</a>` : inner}</span>`;
   }).join("");
-  const usedTypes = [...new Set(finalBest.map(f => typeKind(M.types[f.t] || "")))]; // key covers only the icons shown
+  // key: one entry per distinct icon shown (shape + declared + tow launch), in TYPE_KINDS order
+  const usedIcons = [...new Map(finalBest.map(f => {
+    const t = M.types[f.t] || "", k = kindOf(t), tow = /tow-launch/i.test(t), dec = /declared/i.test(t);
+    return [`${k.id}|${tow}|${dec}`, {k, tow, dec}];
+  })).values()].sort((a, b) => TYPE_KINDS.indexOf(a.k) - TYPE_KINDS.indexOf(b.k) || a.tow - b.tow || a.dec - b.dec);
   $("#barLegend").innerHTML =
     `<div class="ps-head"><strong>${esc(p.name)}</strong><span class="m">${[p.club, p.wing, rk ? "#" + rk + " on " + fmtD(M.dates[S.at]) : ""].filter(Boolean).map(esc).join(" · ")}</span></div>
      <div class="ps-row"><span class="ps-total"><span class="m">Total</span> ${fmtS(finalBest.reduce((a, f) => a + f.s, 0))}</span>${cells}</div>
@@ -623,9 +627,7 @@ function renderBars(sel){
        ${S.barFlights !== "best" ? `<span class="lg">${sq("var(--neutral)")} counted for a while, later replaced</span>` : ""}
        <span class="lg"><svg class="key" width="18" height="6" aria-hidden="true"><line x1="1" x2="17" y1="3" y2="3" stroke="var(--text)" stroke-width="2"/></svg> total score${S.barFlights === "best" ? " (bars show only the final best flights flown so far)" : ""}</span>
        ${S.barFlights === "all" ? `<span class="lg"><svg class="key" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg> flown but never counted</span>` : ""}
-       ${TYPE_KINDS.filter(k => usedTypes.includes(k.id)).map(k => `<span class="lg">${ico(k.glyph)} ${k.label}</span>`).join("")}
-       ${finalBest.some(f => /declared/i.test(M.types[f.t] || "")) ? `<span class="lg">${ico(TYPE_KINDS.find(k => k.id === "tp").glyph, false, true)} yellow symbol: declared</span>` : ""}
-       ${finalBest.some(f => /tow-launch/i.test(M.types[f.t] || "")) ? `<span class="lg">${ico(TYPE_KINDS.find(k => k.id === "tp").glyph, true)} green tile: tow launch</span>` : ""}
+       ${usedIcons.map(u => `<span class="lg">${ico(u.k.glyph, u.tow, u.dec)} ${[u.tow ? "tow-launch" : "", u.dec ? "declared" : "", u.k.label].filter(Boolean).join(" ")}</span>`).join("")}
      </div>`;
 
   wrap.querySelectorAll("[data-seg]").forEach(el => {
@@ -767,12 +769,12 @@ function showPilotFlights(p){
 // and a green tile means tow-launched (blue tile and white symbol otherwise)
 const ico = (body, tow, declared) => {
   const fg = declared ? "var(--declared)" : "#fff";
-  return `<svg class="ti" width="18" height="17" viewBox="0 0 18 17" aria-hidden="true"><rect width="18" height="17" rx="3.5" fill="${tow ? "var(--tow)" : "var(--tile)"}"/><g transform="translate(1.5 2)" fill="none" stroke="${fg}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${body.replace(/currentColor/g, fg)}</g></svg>`;
+  return `<svg class="ti" width="18" height="17" viewBox="0 0 18 17" aria-hidden="true"><rect width="18" height="17" rx="3.5" fill="${tow ? "var(--tow)" : "var(--tile)"}"/><g transform="translate(1.5 2)" fill="none" stroke="${fg}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body.replace(/currentColor/g, fg)}</g></svg>`;
 };
 const TYPE_KINDS = [
-  {id:"fai",     test:/fai triangle/i,   label:"FAI triangle",   glyph:'<path d="M7.5 1.5 13.5 11.5H1.5Z" fill="currentColor"/>'},
-  {id:"flat",    test:/flat triangle/i,  label:"flat triangle",  glyph:'<path d="M3.5 2.5 11.5 10.5H3.5Z" fill="currentColor"/>'},
-  {id:"oar",     test:/out and return/i, label:"out & return",   glyph:'<path d="M4.5 6.5H10.5" stroke-width="2.8" stroke-linecap="butt"/><path d="M1.5 6.5 5.5 3V10Z" fill="currentColor"/><path d="M13.5 6.5 9.5 3V10Z" fill="currentColor"/>'},
+  {id:"fai",     test:/fai triangle/i,   label:"FAI triangle",   glyph:'<path d="M7.5 2.5 12.5 11H2.5Z" fill="currentColor" stroke-width="1.4"/>'},
+  {id:"flat",    test:/flat triangle/i,  label:"flat triangle",  glyph:'<path d="M4 3.5 11 10.5H4Z" fill="currentColor" stroke-width="1.4"/>'},
+  {id:"oar",     test:/out and return/i, label:"out & return",   glyph:'<path d="M4.5 6.5H10.5" stroke-linecap="butt"/><path d="M2 6.5 5.5 3.5V9.5Z" fill="currentColor" stroke-width="1"/><path d="M13 6.5 9.5 3.5V9.5Z" fill="currentColor" stroke-width="1"/>'},
   {id:"goal",    test:/goal/i,           label:"flight to goal", glyph:'<path d="M1.5 6.5H12.5"/><path d="M9.5 3.5 12.5 6.5 9.5 9.5"/>'},
   {id:"coastal", test:/coastal/i,        label:"coastal turnpoint", glyph:'<path d="M2.5 7.5V2.5H11"/><path d="M8.5 0 11 2.5 8.5 5"/><path d="M1.5 11.5q1.5-2 3 0t3 0 3 0 3 0"/>'},
   {id:"open",    test:/open distance/i,  label:"open distance",  glyph:'<path d="M1.5 6.5H9"/><path d="M6 3.5 9 6.5 6 9.5"/><path d="M10 3.5 13 6.5 10 9.5"/>'},

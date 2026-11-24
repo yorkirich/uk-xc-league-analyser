@@ -53,4 +53,5 @@ Static site charting how the UK XC League standings developed through each seaso
 - A Breakdown view for several pilots at once (small multiples were suggested).
 - Spot-check a few older seasons' pilot and club tables against the official ones.
 - Shareable URLs that keep the selection.
+- **Live season feed (if ever built):** plan how to deal with flights that are later deleted, invalidated or re-scored. The export only shows the current list, so the rebuilt history would silently change. Consider keeping daily snapshots or diffs, and decide whether to show standings as they were on the day or as corrected. Agree any scheduled fetch with the league first.
 - More filters: glider class, flight type, biggest movers between two dates.
